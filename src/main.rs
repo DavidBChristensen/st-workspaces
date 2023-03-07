@@ -1,8 +1,10 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")] // hide console window on Windows in release
 
+use std::path::PathBuf;
+
 use eframe::egui;
 use egui::{FontFamily, FontId, TextStyle};
-use st_workspaces::workspaces::Workspace;
+use st_workspaces::{paths::sourcetree_settings_path, workspaces::Workspace};
 
 fn main() -> Result<(), eframe::Error> {
     // Log to stdout (if you run with `RUST_LOG=debug`).
@@ -23,6 +25,7 @@ fn main() -> Result<(), eframe::Error> {
 
 struct SourceTreeWorkspacesApp {
     version: String,
+    settings_path: Option<PathBuf>,
     workspaces: Vec<Workspace>,
 }
 
@@ -32,6 +35,7 @@ impl SourceTreeWorkspacesApp {
         Self {
             version: env!("CARGO_PKG_VERSION").to_owned(),
             workspaces: vec![],
+            settings_path: sourcetree_settings_path(),
         }
     }
 }
@@ -58,6 +62,24 @@ impl eframe::App for SourceTreeWorkspacesApp {
                     }
                 });
             }
+
+            ui.separator();
+
+            ui.vertical(|ui| {
+                if self.settings_path.is_some() {
+                    ui.small(format!(
+                        "SourceTree Settings Path: {}",
+                        self.settings_path
+                            .as_ref()
+                            .unwrap()
+                            .as_os_str()
+                            .to_str()
+                            .unwrap()
+                    ));
+                } else {
+                    ui.small("** SourceTree Settings Path NOT found. **");
+                }
+            });
         });
     }
 }
@@ -67,11 +89,11 @@ fn configure_text_styles(ctx: &egui::Context) {
 
     let mut style = (*ctx.style()).clone();
     style.text_styles = [
-        (TextStyle::Heading, FontId::new(25.0, Proportional)),
-        (TextStyle::Body, FontId::new(16.0, Proportional)),
-        (TextStyle::Monospace, FontId::new(12.0, Monospace)),
-        (TextStyle::Button, FontId::new(12.0, Proportional)),
-        (TextStyle::Small, FontId::new(8.0, Proportional)),
+        (TextStyle::Heading, FontId::new(28.0, Proportional)),
+        (TextStyle::Body, FontId::new(18.0, Proportional)),
+        (TextStyle::Monospace, FontId::new(14.0, Monospace)),
+        (TextStyle::Button, FontId::new(14.0, Proportional)),
+        (TextStyle::Small, FontId::new(10.0, Proportional)),
     ]
     .into();
     ctx.set_style(style);
