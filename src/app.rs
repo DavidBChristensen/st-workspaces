@@ -49,27 +49,30 @@ impl eframe::App for SourceTreeWorkspacesApp {
                     }
                 });
             }
-
-            ui.separator();
-
-            ui.vertical(|ui| {
-                if self.settings_path.is_some() {
-                    ui.small(format!(
-                        "SourceTree Settings Path: {}",
-                        self.settings_path
-                            .as_ref()
-                            .unwrap()
-                            .as_os_str()
-                            .to_str()
-                            .unwrap()
-                    ));
-                } else {
-                    ui.small(
-                        "** SourceTree Settings Path NOT found. Try installing SourceTree. **",
-                    );
-                }
-            });
         });
+
+        egui::TopBottomPanel::bottom("bottom_panel")
+            .resizable(false)
+            .min_height(0.0)
+            .show(ctx, |ui| {
+                ui.vertical(|ui| {
+                    if self.settings_path.is_some() {
+                        ui.small(format!(
+                            "SourceTree Settings Path: {}",
+                            self.settings_path
+                                .as_ref()
+                                .unwrap()
+                                .as_os_str()
+                                .to_str()
+                                .unwrap()
+                        ));
+                    } else {
+                        ui.small(
+                            "** SourceTree Settings Path NOT found. Try installing SourceTree. **",
+                        );
+                    }
+                });
+            });
     }
 }
 
