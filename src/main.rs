@@ -77,7 +77,9 @@ impl eframe::App for SourceTreeWorkspacesApp {
                             .unwrap()
                     ));
                 } else {
-                    ui.small("** SourceTree Settings Path NOT found. **");
+                    ui.small(
+                        "** SourceTree Settings Path NOT found. Try installing SourceTree. **",
+                    );
                 }
             });
         });
