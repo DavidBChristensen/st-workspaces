@@ -14,10 +14,10 @@ Other git clients have solved this with the idea of workspaces. SourceTree doesn
 ## The Short Roadmap
 
 - Initial repository
+- Launch the st-workspaces GUI.
 
 -- We are here --
 
-- Launch the st-workspaces GUI.
 - Save current tabs to new workspace.
 - Load tabs from selected workspace.
 - "Install" st-workspaces to custom actions.
