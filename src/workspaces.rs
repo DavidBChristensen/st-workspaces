@@ -26,7 +26,7 @@ pub fn workspace_path() -> Option<PathBuf> {
         return settings_path;
     }
 
-    Some(settings_path.unwrap().join("st-workspaces.json"))
+    Some(settings_path.unwrap().join("st-workspaces.ron"))
 }
 
 #[cfg(test)]
@@ -37,5 +37,8 @@ mod tests {
     fn should_get_list_of_workspaces() {
         let workspace_path = workspace_path();
         assert_ne!(workspace_path, None);
+
+        let workspace_path = workspace_path.unwrap();
+        assert_eq!(workspace_path.extension().unwrap().to_str().unwrap(), "ron");
     }
 }
