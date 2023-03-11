@@ -10,6 +10,34 @@ pub struct Workspaces {
     pub workspaces: Vec<Workspace>,
 }
 
+impl Workspaces{
+    pub fn path() -> Option<PathBuf> {
+        let Some(settings_path) = sourcetree_settings_path() else { 
+            return None; 
+        };
+
+        Some(settings_path.join("st-workspaces.json"))
+    }
+
+    pub fn write(&self) -> anyhow::Result<()> {
+        let Some(path) = Workspaces::path() else { 
+            bail!("Error getting workspace path for reading."); 
+        };
+
+        write_to_path(&path, self)?;
+        Ok(())
+    }
+
+    pub fn read() -> anyhow::Result<Workspaces> {
+        let Some(path) = Workspaces::path() else { 
+            bail!("Error getting workspace path for reading."); 
+        };
+
+        let workspaces = read_from_path(&path)?;
+        Ok(workspaces)
+    }
+}
+
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Workspace {
     pub name: String,
@@ -24,31 +52,6 @@ impl Workspace {
         }
     }
 
-    pub fn path() -> Option<PathBuf> {
-        let Some(settings_path) = sourcetree_settings_path() else { 
-            return None; 
-        };
-
-        Some(settings_path.join("st-workspaces.json"))
-    }
-
-    pub fn write(workspaces: &Workspaces) -> anyhow::Result<()> {
-        let Some(path) = Workspace::path() else { 
-            bail!("Error getting workspace path for reading."); 
-        };
-
-        write_to_path(&path, workspaces)?;
-        Ok(())
-    }
-
-    pub fn read() -> anyhow::Result<Workspaces> {
-        let Some(path) = Workspace::path() else { 
-            bail!("Error getting workspace path for reading."); 
-        };
-
-        let workspaces = read_from_path(&path)?;
-        Ok(workspaces)
-    }
 }
 
 fn write_to_path(path: &PathBuf, workspaces: &Workspaces) -> anyhow::Result<()> {
@@ -90,7 +93,7 @@ mod tests {
 
     #[test]
     fn should_get_list_of_workspaces() {
-        let workspace_path = Workspace::path();
+        let workspace_path = Workspaces::path();
         assert_ne!(workspace_path, None);
 
         let workspace_path = workspace_path.unwrap();

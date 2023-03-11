@@ -15,10 +15,12 @@ Other git clients have solved this with the idea of workspaces. SourceTree doesn
 
 - Initial repository
 - Launch the st-workspaces GUI.
+- Save current tabs to new workspace.
+    - from ui save button
 
 -- We are here --
 
-- Save current tabs to new workspace.
+    - from custom action
 - Load tabs from selected workspace.
 - "Install" st-workspaces to custom actions.
 - Manage workspaces

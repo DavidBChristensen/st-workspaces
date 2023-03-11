@@ -8,7 +8,7 @@ use std::path::PathBuf;
 #[serde(rename = "ArrayOfStrings")]
 pub struct OpenTabs {
     #[serde(rename = "string")]
-    tabs: Vec<String>,
+    pub tabs: Vec<String>,
 }
 
 impl OpenTabs {
