@@ -1,5 +1,6 @@
 use std::path::PathBuf;
 
+use anyhow::bail;
 use serde::{Deserialize, Serialize};
 
 use crate::paths::sourcetree_settings_path;
@@ -22,38 +23,43 @@ impl Workspace {
             repo_paths: Default::default(),
         }
     }
-}
 
-pub fn workspace_path() -> Option<PathBuf> {
-    let settings_path = sourcetree_settings_path();
-    if settings_path.is_none() {
-        return settings_path;
+    pub fn path() -> Option<PathBuf> {
+        let Some(settings_path) = sourcetree_settings_path() else { 
+            return None; 
+        };
+
+        Some(settings_path.join("st-workspaces.json"))
     }
 
-    Some(settings_path.unwrap().join("st-workspaces.json"))
+    pub fn write(workspaces: &Workspaces) -> anyhow::Result<()> {
+        let Some(path) = Workspace::path() else { 
+            bail!("Error getting workspace path for reading."); 
+        };
+
+        write_to_path(&path, workspaces)?;
+        Ok(())
+    }
+
+    pub fn read() -> anyhow::Result<Workspaces> {
+        let Some(path) = Workspace::path() else { 
+            bail!("Error getting workspace path for reading."); 
+        };
+
+        let workspaces = read_from_path(&path)?;
+        Ok(workspaces)
+    }
 }
 
-fn write_workspace(path: &PathBuf, workspaces: &Workspaces) -> anyhow::Result<()> {
+fn write_to_path(path: &PathBuf, workspaces: &Workspaces) -> anyhow::Result<()> {
     let contents = serde_json::to_string_pretty(&workspaces)?;
     std::fs::write(path, contents)?;
     Ok(())
 }
 
-fn read_workspace(path: &PathBuf) -> anyhow::Result<Workspaces> {
+fn read_from_path(path: &PathBuf) -> anyhow::Result<Workspaces> {
     let contents = std::fs::read_to_string(path)?;
-    let workspaces: Workspaces = serde_json::from_str(&contents).unwrap();
-    Ok(workspaces)
-}
-
-pub fn write_workspace_to_disk(workspaces: &Workspaces) -> anyhow::Result<()> {
-    let path = workspace_path().unwrap();
-    write_workspace(&path, workspaces)?;
-    Ok(())
-}
-
-pub fn read_workspace_from_disk() -> anyhow::Result<Workspaces> {
-    let path = workspace_path().unwrap();
-    let workspaces = read_workspace(&path)?;
+    let workspaces: Workspaces = serde_json::from_str(&contents)?;
     Ok(workspaces)
 }
 
@@ -84,7 +90,7 @@ mod tests {
 
     #[test]
     fn should_get_list_of_workspaces() {
-        let workspace_path = workspace_path();
+        let workspace_path = Workspace::path();
         assert_ne!(workspace_path, None);
 
         let workspace_path = workspace_path.unwrap();
@@ -114,8 +120,8 @@ mod tests {
     fn should_persist_workspace() -> anyhow::Result<()> {
         let spaces = create_test_workspaces();
         let test_path = test_path();
-        write_workspace(&test_path, &spaces)?;
-        let spaces = read_workspace(&test_path)?;
+        write_to_path(&test_path, &spaces)?;
+        let spaces = read_from_path(&test_path)?;
         let first_workspace = &spaces.workspaces[0];
         assert_eq!(first_workspace.name, "First Workspace".to_owned());
         assert_eq!(first_workspace.repo_paths[0], "C:\\fake\\path0".to_owned());

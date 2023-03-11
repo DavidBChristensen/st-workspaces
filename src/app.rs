@@ -23,17 +23,28 @@ impl SourceTreeWorkspacesApp {
 }
 
 impl eframe::App for SourceTreeWorkspacesApp {
-    fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-        egui::CentralPanel::default().show(ctx, |ui| {
+    fn update(&mut self, context: &egui::Context, _frame: &mut eframe::Frame) {
+        self.update_top_panel(context);
+        self.update_central_panel(context);
+        self.update_bottom_panel(context);
+    }
+}
+
+impl SourceTreeWorkspacesApp {
+    fn update_top_panel(&mut self, context: &egui::Context) {
+        egui::TopBottomPanel::top("top_panel").show(context, |ui| {
             let dark_mode = ui.visuals().dark_mode;
             ui.horizontal(|ui| {
                 ui.heading(contrast_text("SourceTree Workspaces", dark_mode));
                 ui.label(format!("(v{})", self.version));
                 egui::widgets::global_dark_light_mode_buttons(ui);
             });
+        });
+    }
 
-            ui.separator();
-
+    fn update_central_panel(&mut self, context: &egui::Context) {
+        egui::CentralPanel::default().show(context, |ui| {
+            let dark_mode = ui.visuals().dark_mode;
             if self.workspaces.is_empty() {
                 ui.vertical(|ui| {
                     ui.label(contrast_text("No Workspaces Exist... Yet...", dark_mode));
@@ -50,11 +61,13 @@ impl eframe::App for SourceTreeWorkspacesApp {
                 });
             }
         });
+    }
 
+    fn update_bottom_panel(&mut self, context: &egui::Context) {
         egui::TopBottomPanel::bottom("bottom_panel")
             .resizable(false)
             .min_height(0.0)
-            .show(ctx, |ui| {
+            .show(context, |ui| {
                 ui.vertical(|ui| {
                     if self.settings_path.is_some() {
                         ui.small(format!(
