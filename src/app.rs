@@ -1,6 +1,7 @@
 use std::path::PathBuf;
 
 use egui::{Color32, FontFamily, FontId, RichText, TextStyle};
+use uuid::Uuid;
 
 use crate::{
     open_tabs::OpenTabs,
@@ -17,12 +18,12 @@ pub struct SourceTreeWorkspacesApp {
 }
 
 impl SourceTreeWorkspacesApp {
-    pub fn new(cc: &eframe::CreationContext<'_>) -> Self {
+    pub fn new(cc: &eframe::CreationContext<'_>, workspaces: Workspaces) -> Self {
         configure_text_styles(&cc.egui_ctx);
 
         Self {
             version: env!("CARGO_PKG_VERSION").to_owned(),
-            workspaces: Workspaces::read().unwrap_or_default(),
+            workspaces,
             settings_path: sourcetree_settings_path(),
             status: "".to_owned(),
         }
@@ -117,6 +118,7 @@ impl SourceTreeWorkspacesApp {
 impl From<OpenTabs> for Workspace {
     fn from(open_tabs: OpenTabs) -> Self {
         Workspace {
+            uuid: Uuid::new_v4(),
             name: "New Workspace".to_owned(),
             repo_paths: open_tabs.tabs,
         }
@@ -127,6 +129,7 @@ impl From<Workspace> for OpenTabs {
     fn from(workspace: Workspace) -> Self {
         OpenTabs {
             tabs: workspace.repo_paths,
+            workspace_id: Some(workspace.uuid),
         }
     }
 }

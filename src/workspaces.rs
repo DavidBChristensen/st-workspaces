@@ -2,11 +2,13 @@ use std::path::PathBuf;
 
 use anyhow::bail;
 use serde::{Deserialize, Serialize};
+use uuid::Uuid;
 
 use crate::paths::sourcetree_settings_path;
 
 #[derive(Serialize, Deserialize, Debug, Default)]
 pub struct Workspaces {
+    pub current_workspace: Uuid,
     pub workspaces: Vec<Workspace>,
 }
 
@@ -40,13 +42,15 @@ impl Workspaces{
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Workspace {
+    pub uuid: Uuid,
     pub name: String,
     pub repo_paths: Vec<String>,
 }
 
 impl Workspace {
-    pub fn new(name: &str) -> Self {
+    pub fn new(name: &str, uuid : Uuid) -> Self {
         Self {
+            uuid, 
             name: name.to_string(),
             repo_paths: Default::default(),
         }
@@ -77,13 +81,13 @@ mod tests {
 
     fn create_test_workspaces() -> Workspaces {
         let mut spaces = Workspaces::default();
-        let mut space = Workspace::new("First Workspace");
+        let mut space = Workspace::new("First Workspace", Uuid::new_v4());
         space.repo_paths.push("C:\\fake\\path0".to_owned());
         space.repo_paths.push("C:\\fake\\path1".to_owned());
         space.repo_paths.push("C:\\fake\\path2".to_owned());
         spaces.workspaces.push(space);
 
-        let mut space = Workspace::new("Second Workspace");
+        let mut space = Workspace::new("Second Workspace", Uuid::new_v4());
         space.repo_paths.push("C:\\fake\\path3".to_owned());
         space.repo_paths.push("C:\\fake\\path4".to_owned());
         space.repo_paths.push("C:\\fake\\path5".to_owned());

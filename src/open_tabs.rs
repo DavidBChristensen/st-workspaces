@@ -1,5 +1,6 @@
 use anyhow::bail;
 use serde::{Deserialize, Serialize};
+use uuid::Uuid;
 
 use crate::paths::sourcetree_settings_path;
 use std::path::PathBuf;
@@ -9,6 +10,7 @@ use std::path::PathBuf;
 pub struct OpenTabs {
     #[serde(rename = "string")]
     pub tabs: Vec<String>,
+    pub workspace_id: Option<Uuid>, 
 }
 
 impl OpenTabs {
@@ -63,7 +65,11 @@ mod tests {
     }
 
     fn create_test_open_tabs() -> OpenTabs {
-        let mut open_tabs = OpenTabs::default();
+        let mut open_tabs = OpenTabs{ 
+            workspace_id : Some(Uuid::new_v4()),
+            ..Default::default()
+        };
+
         open_tabs.tabs.push(r#"C:\example\project-one"#.to_owned());
         open_tabs.tabs.push(r#"C:\example\project-two"#.to_owned());
         open_tabs
