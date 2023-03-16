@@ -11,7 +11,11 @@ fn main() -> Result<(), eframe::Error> {
     // Log to stdout (if you run with `RUST_LOG=debug`).
     tracing_subscriber::fmt::init();
 
-    let workspaces = Workspaces::read().unwrap_or_default();
+    let mut workspaces = Workspaces::read().unwrap_or_default();
+
+    if workspaces.current_workspace.is_nil() && !workspaces.workspaces.is_empty() {
+        workspaces.current_workspace = workspaces.workspaces.first().unwrap().uuid;
+    }
 
     let options = eframe::NativeOptions {
         initial_window_size: Some(egui::vec2(640.0, 480.0)),

@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use egui::{Color32, FontFamily, FontId, RichText, TextStyle};
+use egui::{Button, Color32, FontFamily, FontId, Label, RichText, Sense, TextStyle};
 use uuid::Uuid;
 
 use crate::{
@@ -43,7 +43,7 @@ impl SourceTreeWorkspacesApp {
         egui::TopBottomPanel::top("top_panel").show(context, |ui| {
             let dark_mode = ui.visuals().dark_mode;
             ui.horizontal(|ui| {
-                ui.heading(contrast_text("SourceTree Workspaces", dark_mode));
+                ui.heading(contrast_text("SourceTree Workspaces", false, dark_mode));
                 ui.label(format!("(v{})", self.version));
                 egui::widgets::global_dark_light_mode_buttons(ui);
             });
@@ -55,18 +55,41 @@ impl SourceTreeWorkspacesApp {
             let dark_mode = ui.visuals().dark_mode;
             if self.workspaces.workspaces.is_empty() {
                 ui.vertical(|ui| {
-                    ui.label(contrast_text("No Workspaces Exist... Yet...", dark_mode));
+                    ui.label(contrast_text(
+                        "No Workspaces Exist... Yet...",
+                        false,
+                        dark_mode,
+                    ));
                 });
             } else {
-                ui.vertical(|ui| {
-                    for workspace in self.workspaces.workspaces.iter() {
-                        ui.label(workspace.name.to_string());
-                    }
+                ui.horizontal(|ui| {
+                    ui.vertical(|ui| {
+                        for workspace in self.workspaces.workspaces.iter() {
+                            if ui
+                                .add(
+                                    Label::new(contrast_text(
+                                        workspace.name.as_str(),
+                                        workspace.uuid == self.workspaces.current_workspace,
+                                        dark_mode,
+                                    ))
+                                    .sense(Sense::click()),
+                                )
+                                .clicked()
+                            {
+                                self.workspaces.current_workspace = workspace.uuid;
+                            };
+                        }
+                    });
+                    ui.vertical(|ui| {
+                        if ui.add(Button::new("Delete")).clicked() {
+                            self.delete_current_workspace();
+                        }
+                    });
                 });
             }
 
             if ui
-                .add(egui::Button::new("Create Workspace from Current Tabs"))
+                .add(Button::new("Create Workspace from Current Tabs"))
                 .clicked()
             {
                 self.create_workspace_from_current_tabs();
@@ -80,7 +103,7 @@ impl SourceTreeWorkspacesApp {
             .min_height(0.0)
             .show(context, |ui| {
                 let dark_mode = ui.visuals().dark_mode;
-                ui.label(contrast_text(&self.status, dark_mode));
+                ui.label(contrast_text(&self.status, false, dark_mode));
                 ui.separator();
                 ui.vertical(|ui| {
                     if self.settings_path.is_some() {
@@ -107,10 +130,36 @@ impl SourceTreeWorkspacesApp {
         let open_tabs = OpenTabs::read().unwrap();
         self.workspaces.workspaces.push(open_tabs.into());
         let write_result = self.workspaces.write();
+
         if write_result.is_err() {
             self.status = "Error creating workspace from current tabs".to_owned();
         } else {
             self.status = "Created workspace from current tabs".to_owned();
+        }
+
+        self.select_first_workspace();
+    }
+
+    fn delete_current_workspace(&mut self) {
+        println!("Deleting current workspace...");
+        self.workspaces
+            .workspaces
+            .retain(|workspace| workspace.uuid != self.workspaces.current_workspace);
+
+        let write_result = self.workspaces.write();
+
+        if write_result.is_err() {
+            self.status = "Error creating workspace from current tabs".to_owned();
+        } else {
+            self.status = "Created workspace from current tabs".to_owned();
+        }
+
+        self.select_first_workspace();
+    }
+
+    fn select_first_workspace(&mut self) {
+        if !self.workspaces.workspaces.is_empty() {
+            self.workspaces.current_workspace = self.workspaces.workspaces.first().unwrap().uuid;
         }
     }
 }
@@ -149,10 +198,14 @@ fn configure_text_styles(ctx: &egui::Context) {
     ctx.set_style(style);
 }
 
-fn contrast_text(text: &str, dark_mode: bool) -> RichText {
-    if dark_mode {
-        RichText::new(text).color(Color32::from_rgb(200, 200, 200))
+fn contrast_text(text: &str, highlight: bool, dark_mode: bool) -> RichText {
+    if highlight == dark_mode {
+        RichText::new(text)
+            .color(Color32::from_rgb(10, 10, 10))
+            .background_color(Color32::from_rgb(255, 255, 255))
     } else {
-        RichText::new(text).color(Color32::from_rgb(10, 10, 10))
+        RichText::new(text)
+            .color(Color32::from_rgb(200, 200, 200))
+            .background_color(Color32::from_rgb(27, 27, 27))
     }
 }
