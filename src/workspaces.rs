@@ -13,12 +13,12 @@ pub struct Workspaces {
 }
 
 impl Workspaces{
-    pub fn path() -> Option<PathBuf> {
-        let Some(settings_path) = sourcetree_settings_path() else { 
-            return None; 
-        };
+    pub fn current_workspace(&self) -> Option<&Workspace> {
+        let search_result = self.workspaces.iter().find(|workspace|{
+            workspace.uuid == self.current_workspace
+        });
 
-        Some(settings_path.join("st-workspaces.json"))
+        search_result
     }
 
     pub fn write(&self) -> anyhow::Result<()> {
@@ -30,6 +30,14 @@ impl Workspaces{
         Ok(())
     }
 
+    pub fn path() -> Option<PathBuf> {
+        let Some(settings_path) = sourcetree_settings_path() else { 
+            return None; 
+        };
+
+        Some(settings_path.join("st-workspaces.json"))
+    }
+
     pub fn read() -> anyhow::Result<Workspaces> {
         let Some(path) = Workspaces::path() else { 
             bail!("Error getting workspace path for reading."); 
@@ -38,6 +46,7 @@ impl Workspaces{
         let workspaces = read_from_path(&path)?;
         Ok(workspaces)
     }
+
 }
 
 #[derive(Serialize, Deserialize, Debug)]

@@ -1,6 +1,8 @@
 use std::path::PathBuf;
 
-use egui::{Button, Color32, FontFamily, FontId, Label, RichText, Sense, TextStyle};
+use egui::{
+    Align, Button, Color32, FontFamily, FontId, Label, Layout, RichText, Sense, TextStyle, Ui,
+};
 use uuid::Uuid;
 
 use crate::{
@@ -52,47 +54,65 @@ impl SourceTreeWorkspacesApp {
 
     fn update_central_panel(&mut self, context: &egui::Context) {
         egui::CentralPanel::default().show(context, |ui| {
-            let dark_mode = ui.visuals().dark_mode;
+            ui.horizontal(|ui| {
+                self.update_workspace_list_panel(ui);
+                self.update_workspace_details_panel(ui);
+            });
+        });
+    }
+
+    fn update_workspace_list_panel(&mut self, ui: &mut Ui) {
+        let dark_mode = ui.visuals().dark_mode;
+        ui.vertical(|ui| {
             if self.workspaces.workspaces.is_empty() {
-                ui.vertical(|ui| {
-                    ui.label(contrast_text(
-                        "No Workspaces Exist... Yet...",
-                        false,
-                        dark_mode,
-                    ));
-                });
+                ui.label(contrast_text(
+                    "No workspaces exist... yet...",
+                    false,
+                    dark_mode,
+                ));
             } else {
-                ui.horizontal(|ui| {
-                    ui.vertical(|ui| {
-                        for workspace in self.workspaces.workspaces.iter() {
-                            if ui
-                                .add(
-                                    Label::new(contrast_text(
-                                        workspace.name.as_str(),
-                                        workspace.uuid == self.workspaces.current_workspace,
-                                        dark_mode,
-                                    ))
-                                    .sense(Sense::click()),
-                                )
-                                .clicked()
-                            {
-                                self.workspaces.current_workspace = workspace.uuid;
-                            };
-                        }
-                    });
-                    ui.vertical(|ui| {
-                        if ui.add(Button::new("Delete")).clicked() {
-                            self.delete_current_workspace();
-                        }
-                    });
-                });
+                for workspace in self.workspaces.workspaces.iter() {
+                    if ui
+                        .add(
+                            Label::new(contrast_text(
+                                workspace.name.as_str(),
+                                workspace.uuid == self.workspaces.current_workspace,
+                                dark_mode,
+                            ))
+                            .sense(Sense::click()),
+                        )
+                        .clicked()
+                    {
+                        self.workspaces.current_workspace = workspace.uuid;
+                    };
+                }
             }
 
             if ui
-                .add(Button::new("Create Workspace from Current Tabs"))
+                .add(Button::new("Create Workspace \nfrom Current Tabs"))
                 .clicked()
             {
                 self.create_workspace_from_current_tabs();
+            }
+        });
+    }
+
+    fn update_workspace_details_panel(&mut self, ui: &mut Ui) {
+        if self.workspaces.workspaces.is_empty() || self.workspaces.current_workspace.is_nil() {
+            return;
+        }
+        ui.vertical(|ui| {
+            let dark_mode = ui.visuals().dark_mode;
+            if let Some(current_workspace) = self.workspaces.current_workspace() {
+                for repo_path in current_workspace.repo_paths.iter() {
+                    ui.label(contrast_text(repo_path.as_str(), false, dark_mode));
+                }
+            }
+        });
+
+        ui.with_layout(Layout::bottom_up(Align::RIGHT), |ui| {
+            if ui.add(Button::new("Remove Workspace")).clicked() {
+                self.remove_current_workspace();
             }
         });
     }
@@ -140,7 +160,7 @@ impl SourceTreeWorkspacesApp {
         self.select_first_workspace();
     }
 
-    fn delete_current_workspace(&mut self) {
+    fn remove_current_workspace(&mut self) {
         println!("Deleting current workspace...");
         self.workspaces
             .workspaces
