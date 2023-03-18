@@ -12,6 +12,7 @@ fn main() -> Result<(), eframe::Error> {
     tracing_subscriber::fmt::init();
 
     let mut workspaces = Workspaces::read().unwrap_or_default();
+    workspaces.force_valid_workspace();
 
     if workspaces.current_workspace.is_nil() && !workspaces.workspaces.is_empty() {
         workspaces.current_workspace = workspaces.workspaces.first().unwrap().uuid;

@@ -21,6 +21,12 @@ impl Workspaces{
         search_result
     }
 
+    pub fn force_valid_workspace(&mut self) {
+        if !self.workspaces.is_empty() && self.current_workspace().is_none(){
+            self.current_workspace = self.workspaces.first().unwrap().uuid;
+        }
+    }
+
     pub fn write(&self) -> anyhow::Result<()> {
         let Some(path) = Workspaces::path() else { 
             bail!("Error getting workspace path for reading."); 
