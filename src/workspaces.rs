@@ -13,8 +13,8 @@ pub struct Workspaces {
 }
 
 impl Workspaces{
-    pub fn current_workspace(&self) -> Option<&Workspace> {
-        let search_result = self.workspaces.iter().find(|workspace|{
+    pub fn current_workspace(&mut self) -> Option<&mut Workspace> {
+        let search_result = self.workspaces.iter_mut().find(|workspace|{
             workspace.uuid == self.current_workspace
         });
 

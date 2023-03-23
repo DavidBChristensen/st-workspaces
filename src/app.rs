@@ -104,6 +104,11 @@ impl SourceTreeWorkspacesApp {
         ui.vertical(|ui| {
             let dark_mode = ui.visuals().dark_mode;
             if let Some(current_workspace) = self.workspaces.current_workspace() {
+                ui.horizontal(|ui| {
+                    ui.label(contrast_text("Name ", false, dark_mode));
+                    ui.text_edit_singleline(&mut current_workspace.name);
+                });
+
                 for repo_path in current_workspace.repo_paths.iter() {
                     ui.label(contrast_text(repo_path.as_str(), false, dark_mode));
                 }
