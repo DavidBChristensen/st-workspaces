@@ -33,10 +33,10 @@ impl SourceTreeWorkspacesApp {
 }
 
 impl eframe::App for SourceTreeWorkspacesApp {
-    fn update(&mut self, context: &egui::Context, _frame: &mut eframe::Frame) {
+    fn update(&mut self, context: &egui::Context, frame: &mut eframe::Frame) {
         self.update_top_panel(context);
         self.update_central_panel(context);
-        self.update_bottom_panel(context);
+        self.update_bottom_panel(context, frame);
     }
 }
 
@@ -105,7 +105,7 @@ impl SourceTreeWorkspacesApp {
         ui.vertical(|ui| {
             let dark_mode = ui.visuals().dark_mode;
             let mut should_save = false;
-            if let Some(current_workspace) = self.workspaces.current_workspace() {
+            if let Some(current_workspace) = self.workspaces.current_workspace_mut() {
                 ui.horizontal(|ui| {
                     ui.label(contrast_text("Name ", false, dark_mode));
                     if ui
@@ -136,12 +136,20 @@ impl SourceTreeWorkspacesApp {
         });
     }
 
-    fn update_bottom_panel(&mut self, context: &egui::Context) {
+    fn update_bottom_panel(&mut self, context: &egui::Context, frame: &mut eframe::Frame) {
         egui::TopBottomPanel::bottom("bottom_panel")
             .resizable(false)
             .min_height(0.0)
             .show(context, |ui| {
                 let dark_mode = ui.visuals().dark_mode;
+                ui.horizontal(|ui| {
+                    if self.workspaces.current_workspace().is_some()
+                        && ui.button("Open Workspace").clicked()
+                    {
+                        self.open_current_workspace(frame);
+                    }
+                });
+                ui.separator();
                 ui.label(contrast_text(&self.status, false, dark_mode));
                 ui.separator();
                 ui.vertical(|ui| {
@@ -167,7 +175,8 @@ impl SourceTreeWorkspacesApp {
     fn create_workspace_from_current_tabs(&mut self) {
         println!("Creating workspace...");
         let open_tabs = OpenTabs::read().unwrap();
-        self.workspaces.workspaces.push(open_tabs.into());
+        let new_workspace: Workspace = (&open_tabs).into();
+        self.workspaces.workspaces.push(new_workspace);
         let write_result = self.workspaces.write();
 
         if write_result.is_err() {
@@ -201,22 +210,37 @@ impl SourceTreeWorkspacesApp {
             self.workspaces.current_workspace = self.workspaces.workspaces.first().unwrap().uuid;
         }
     }
+
+    fn open_current_workspace(&mut self, frame: &mut eframe::Frame) {
+        if self.workspaces.write().is_err() {
+            println!("Didn't save workspace when closing.");
+        }
+
+        let current_workspace = self.workspaces.current_workspace().unwrap();
+        let open_tabs: OpenTabs = current_workspace.into();
+        if OpenTabs::write(&open_tabs).is_err() {
+            self.status = "Couldn't write open tabs, so can't launch SourceTree.".to_owned();
+            return;
+        }
+
+        frame.close();
+    }
 }
 
-impl From<OpenTabs> for Workspace {
-    fn from(open_tabs: OpenTabs) -> Self {
+impl From<&OpenTabs> for Workspace {
+    fn from(open_tabs: &OpenTabs) -> Self {
         Workspace {
             uuid: Uuid::new_v4(),
             name: "New Workspace".to_owned(),
-            repo_paths: open_tabs.tabs,
+            repo_paths: open_tabs.tabs.clone(),
         }
     }
 }
 
-impl From<Workspace> for OpenTabs {
-    fn from(workspace: Workspace) -> Self {
+impl From<&Workspace> for OpenTabs {
+    fn from(workspace: &Workspace) -> Self {
         OpenTabs {
-            tabs: workspace.repo_paths,
+            tabs: workspace.repo_paths.clone(),
             workspace_id: Some(workspace.uuid),
         }
     }
