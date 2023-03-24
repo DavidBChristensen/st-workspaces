@@ -1,3 +1,4 @@
+pub mod sourcetree_actions;
 pub mod app;
 pub mod paths;
 pub mod custom_actions;

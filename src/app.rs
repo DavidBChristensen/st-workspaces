@@ -8,6 +8,7 @@ use uuid::Uuid;
 use crate::{
     open_tabs::OpenTabs,
     paths::sourcetree_settings_path,
+    sourcetree_actions::close_sourcetree,
     workspaces::{Workspace, Workspaces},
 };
 
@@ -148,6 +149,10 @@ impl SourceTreeWorkspacesApp {
                     {
                         self.open_current_workspace(frame);
                     }
+
+                    if ui.button("Close SourceTree").clicked() && close_sourcetree().is_err() {
+                        self.status = "Error closing SourceTree".to_owned();
+                    }
                 });
                 ui.separator();
                 ui.label(contrast_text(&self.status, false, dark_mode));
@@ -233,7 +238,7 @@ impl SourceTreeWorkspacesApp {
             return;
         }
 
-        if spawn_result.unwrap().wait().is_err(){
+        if spawn_result.unwrap().wait().is_err() {
             self.status = "Couldn't switch to SourceTree fully. Process error?".to_owned();
             return;
         }
