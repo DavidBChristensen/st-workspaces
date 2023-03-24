@@ -223,6 +223,11 @@ impl SourceTreeWorkspacesApp {
             return;
         }
 
+        if std::process::Command::new("C:\\Users\\david\\AppData\\Local\\SourceTree\\SourceTree.exe").spawn().is_err() {
+            self.status = "Couldn't launch SourceTree. Is it installed?".to_owned();
+            return;
+        }
+
         frame.close();
     }
 }
