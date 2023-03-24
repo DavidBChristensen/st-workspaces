@@ -223,8 +223,18 @@ impl SourceTreeWorkspacesApp {
             return;
         }
 
-        if std::process::Command::new("C:\\Users\\david\\AppData\\Local\\SourceTree\\SourceTree.exe").spawn().is_err() {
+        let spawn_result = std::process::Command::new(
+            "C:\\Users\\david\\AppData\\Local\\SourceTree\\SourceTree.exe",
+        )
+        .spawn();
+
+        if spawn_result.is_err() {
             self.status = "Couldn't launch SourceTree. Is it installed?".to_owned();
+            return;
+        }
+
+        if spawn_result.unwrap().wait().is_err(){
+            self.status = "Couldn't switch to SourceTree fully. Process error?".to_owned();
             return;
         }
 
