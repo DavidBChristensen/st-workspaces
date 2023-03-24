@@ -20,7 +20,7 @@ fn main() -> Result<(), eframe::Error> {
 
     let options = eframe::NativeOptions {
         initial_window_size: Some(egui::vec2(640.0, 480.0)),
-        min_window_size: Some(egui::vec2(320.0, 240.0)),
+        min_window_size: Some(egui::vec2(640.0, 480.0)),
         ..Default::default()
     };
 
