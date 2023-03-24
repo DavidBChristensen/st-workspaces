@@ -6,7 +6,7 @@ use crate::paths::sourcetree_settings_path;
 use std::path::PathBuf;
 
 #[derive(Serialize, Deserialize, Debug, Default)]
-#[serde(rename = "ArrayOfStrings")]
+#[serde(rename = "ArrayOfString")]
 pub struct OpenTabs {
     #[serde(rename = "string")]
     pub tabs: Vec<String>,
