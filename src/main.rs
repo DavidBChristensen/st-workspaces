@@ -1,7 +1,10 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")] // hide console window on Windows in release
 
 use st_workspaces::{
-    app::SourceTreeWorkspacesApp, workspaces::{Workspaces, Workspace}, sourcetree_actions, open_tabs::OpenTabs, 
+    app::SourceTreeWorkspacesApp,
+    open_tabs::OpenTabs,
+    sourcetree_actions,
+    workspaces::{Workspace, Workspaces, self},
 };
 
 /// Responsible for managing workspaces
@@ -23,11 +26,23 @@ fn main() -> Result<(), eframe::Error> {
     let mut workspaces = Workspaces::read().unwrap_or_default();
     workspaces.force_valid_workspace();
 
-    if let Ok(open_tabs) = OpenTabs::read(){
-        let mut last_workspace : Workspace = (&open_tabs).into();
-        last_workspace.name = "Last Workspace".to_owned();
-        workspaces.workspaces.push(last_workspace);
-        workspaces.write().expect("Couldn't write workspace after loading last workspace.");
+    if let Ok(open_tabs) = OpenTabs::read() {
+        let mut last_workspace: Workspace = (&open_tabs).into();
+        let search_result = workspaces
+            .workspaces
+            .iter()
+            .find(|workspace| workspace.uuid == last_workspace.uuid);
+
+        if search_result.is_some() {
+            workspaces.workspaces
+        } else {
+            last_workspace.name = "Last Workspace".to_owned();
+            workspaces.workspaces.push(last_workspace);
+        }
+
+        workspaces
+            .write()
+            .expect("Couldn't write workspace after loading last workspace.");
     }
 
     let options = eframe::NativeOptions {

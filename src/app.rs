@@ -252,8 +252,13 @@ impl SourceTreeWorkspacesApp {
 
 impl From<&OpenTabs> for Workspace {
     fn from(open_tabs: &OpenTabs) -> Self {
+        let mut uuid = Uuid::new_v4();
+        if open_tabs.workspace_id.is_some() {
+            uuid = open_tabs.workspace_id.unwrap();
+        }
+
         Workspace {
-            uuid: Uuid::new_v4(),
+            uuid,
             name: "New Workspace".to_owned(),
             repo_paths: open_tabs.tabs.clone(),
         }

@@ -30,7 +30,7 @@ impl Workspaces{
     }
 
     pub fn force_valid_workspace(&mut self) {
-        if !self.workspaces.is_empty() && self.current_workspace().is_none(){
+        if !self.workspaces.is_empty() && self.current_workspace.is_nil(){
             self.current_workspace = self.workspaces.first().unwrap().uuid;
         }
     }
