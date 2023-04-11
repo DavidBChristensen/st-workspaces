@@ -27,18 +27,18 @@ fn main() -> Result<(), eframe::Error> {
     workspaces.force_valid_workspace();
 
     if let Ok(open_tabs) = OpenTabs::read() {
-        let mut last_workspace: Workspace = (&open_tabs).into();
+        let mut last_workspace = Workspace::from(&open_tabs);
         let search_result = workspaces
             .workspaces
             .iter()
             .find(|workspace| workspace.uuid == last_workspace.uuid);
 
-        if search_result.is_some() {
-            workspaces.workspaces
-        } else {
-            last_workspace.name = "Last Workspace".to_owned();
-            workspaces.workspaces.push(last_workspace);
-        }
+        // if search_result.is_some() {
+        //     workspaces.workspaces
+        // } else {
+        //     last_workspace.name = "Last Workspace".to_owned();
+        //     workspaces.workspaces.push(last_workspace);
+        // }
 
         workspaces
             .write()
