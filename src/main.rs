@@ -4,7 +4,7 @@ use st_workspaces::{
     app::SourceTreeWorkspacesApp,
     open_tabs::OpenTabs,
     sourcetree_actions,
-    workspaces::{Workspace, Workspaces, self},
+    workspaces::{Workspace, Workspaces},
 };
 
 /// Responsible for managing workspaces
@@ -33,12 +33,10 @@ fn main() -> Result<(), eframe::Error> {
             .iter()
             .find(|workspace| workspace.uuid == last_workspace.uuid);
 
-        // if search_result.is_some() {
-        //     workspaces.workspaces
-        // } else {
-        //     last_workspace.name = "Last Workspace".to_owned();
-        //     workspaces.workspaces.push(last_workspace);
-        // }
+        if search_result.is_none() {
+            last_workspace.name = "Last Workspace".to_owned();
+            workspaces.workspaces.push(last_workspace);
+        }
 
         workspaces
             .write()
