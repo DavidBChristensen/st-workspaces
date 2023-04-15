@@ -4,12 +4,15 @@ Not affiliated with Atlassian.
 
 ## We Want to Save our Tabs in Workspaces
 
-Often when working with SourceTree, you might find yourself opening multiple tabs for a project.  You may be working on one task that you need to span multiple tabs; or, maybe just have the same repositories open for different projects.
+Often when working with SourceTree, you might find yourself opening multiple tabs for a project.  
+You may be working on one task that you need to span multiple tabs; or, maybe just have the same 
+repositories open for different projects.
 
 Bookmarks get us part-way there, but it is a hassle to close all the other tabs, and open only the
 ones you want. Especially if you are doing this multiple times in the day.
 
-Other git clients have solved this with the idea of workspaces. SourceTree doesn't have this yet...so that is why this repository exists.
+Other git clients have solved this with the idea of workspaces. SourceTree doesn't have this 
+yet...so that is why this repository exists.
 
 ## The Short Roadmap
 
