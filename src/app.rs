@@ -7,8 +7,7 @@ use uuid::Uuid;
 
 use crate::{
     open_tabs::OpenTabs,
-    paths::sourcetree_settings_path,
-    sourcetree_actions::close_sourcetree,
+    paths::{sourcetree_exec_path, sourcetree_settings_path},
     workspaces::{Workspace, Workspaces},
 };
 
@@ -229,7 +228,11 @@ impl SourceTreeWorkspacesApp {
         }
 
         let spawn_result = std::process::Command::new(
-            "C:\\Users\\david\\AppData\\Local\\SourceTree\\SourceTree.exe",
+            sourcetree_exec_path()
+                .unwrap()
+                .as_os_str()
+                .to_str()
+                .unwrap(),
         )
         .spawn();
 

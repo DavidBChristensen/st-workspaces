@@ -10,6 +10,17 @@ pub fn sourcetree_settings_path() -> Option<PathBuf> {
     None
 }
 
+pub fn sourcetree_exec_path() -> Option<PathBuf> {
+    if let Some(base_dirs) = BaseDirs::new() {
+        let data_local_dir_path = base_dirs.data_local_dir();
+        let source_tree_path = data_local_dir_path
+            .join("SourceTree")
+            .join("SourceTree.exe");
+        return Some(source_tree_path);
+    }
+    None
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
