@@ -72,7 +72,11 @@ impl SourceTreeWorkspacesApp {
                     dark_mode,
                 ));
             } else {
-                for workspace in self.workspaces.workspaces.iter() {
+                let mut sorted_workspaces: Vec<_> =
+                    self.workspaces.workspaces.iter().map(|w| w.1).collect();
+                sorted_workspaces.sort();
+
+                for workspace in sorted_workspaces.iter() {
                     if ui
                         .add(
                             Label::new(contrast_text(
@@ -180,7 +184,9 @@ impl SourceTreeWorkspacesApp {
         println!("Creating workspace...");
         let open_tabs = OpenTabs::read().unwrap();
         let new_workspace: Workspace = (&open_tabs).into();
-        self.workspaces.workspaces.push(new_workspace);
+        self.workspaces
+            .workspaces
+            .insert(new_workspace.uuid, new_workspace);
         let write_result = self.workspaces.write();
 
         if write_result.is_err() {
@@ -189,14 +195,14 @@ impl SourceTreeWorkspacesApp {
             self.status = "Created workspace from current tabs".to_owned();
         }
 
-        self.select_first_workspace();
+        self.workspaces.force_valid_workspace();
     }
 
     fn remove_current_workspace(&mut self) {
         println!("Deleting current workspace...");
         self.workspaces
             .workspaces
-            .retain(|workspace| workspace.uuid != self.workspaces.current_workspace);
+            .remove(&self.workspaces.current_workspace);
 
         let write_result = self.workspaces.write();
 
@@ -206,13 +212,7 @@ impl SourceTreeWorkspacesApp {
             self.status = "Created workspace from current tabs".to_owned();
         }
 
-        self.select_first_workspace();
-    }
-
-    fn select_first_workspace(&mut self) {
-        if !self.workspaces.workspaces.is_empty() {
-            self.workspaces.current_workspace = self.workspaces.workspaces.first().unwrap().uuid;
-        }
+//        self.workspaces.force_valid_workspace();
     }
 
     fn open_current_workspace(&mut self, frame: &mut eframe::Frame) {

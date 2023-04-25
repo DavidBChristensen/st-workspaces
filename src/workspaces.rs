@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::{path::PathBuf, collections::HashMap};
 
 use anyhow::bail;
 use serde::{Deserialize, Serialize};
@@ -9,29 +9,21 @@ use crate::paths::sourcetree_settings_path;
 #[derive(Serialize, Deserialize, Debug, Default)]
 pub struct Workspaces {
     pub current_workspace: Uuid,
-    pub workspaces: Vec<Workspace>,
+    pub workspaces: HashMap<Uuid, Workspace>,
 }
 
 impl Workspaces{
     pub fn current_workspace(& self) -> Option<& Workspace> {
-        let search_result = self.workspaces.iter().find(|workspace|{
-            workspace.uuid == self.current_workspace
-        });
-
-        search_result
+        self.workspaces.get(&self.current_workspace)
     }
 
     pub fn current_workspace_mut(&mut self) -> Option<&mut Workspace> {
-        let search_result = self.workspaces.iter_mut().find(|workspace|{
-            workspace.uuid == self.current_workspace
-        });
-
-        search_result
+        self.workspaces.get_mut(&self.current_workspace)
     }
 
     pub fn force_valid_workspace(&mut self) {
         if !self.workspaces.is_empty() && self.current_workspace.is_nil(){
-            self.current_workspace = self.workspaces.first().unwrap().uuid;
+            self.current_workspace = *self.workspaces.iter().next().unwrap().0;
         }
     }
 
@@ -63,11 +55,23 @@ impl Workspaces{
 
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq)]
 pub struct Workspace {
     pub uuid: Uuid,
     pub name: String,
     pub repo_paths: Vec<String>,
+}
+
+impl Ord for Workspace{
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.name.cmp(&other.name)
+    }
+}
+
+impl PartialOrd for Workspace{
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        self.name.partial_cmp(&other.name)
+    }
 }
 
 impl Workspace {
@@ -78,7 +82,6 @@ impl Workspace {
             repo_paths: Default::default(),
         }
     }
-
 }
 
 fn write_to_path(path: &PathBuf, workspaces: &Workspaces) -> anyhow::Result<()> {
@@ -108,13 +111,13 @@ mod tests {
         space.repo_paths.push("C:\\fake\\path0".to_owned());
         space.repo_paths.push("C:\\fake\\path1".to_owned());
         space.repo_paths.push("C:\\fake\\path2".to_owned());
-        spaces.workspaces.push(space);
+        spaces.workspaces.insert(space.uuid,space);
 
         let mut space = Workspace::new("Second Workspace", Uuid::new_v4());
         space.repo_paths.push("C:\\fake\\path3".to_owned());
         space.repo_paths.push("C:\\fake\\path4".to_owned());
         space.repo_paths.push("C:\\fake\\path5".to_owned());
-        spaces.workspaces.push(space);
+        spaces.workspaces.insert(space.uuid,space);
         spaces
     }
 
@@ -134,16 +137,12 @@ mod tests {
     fn should_serialize_workspace() {
         let spaces = create_test_workspaces();
         let serialized_spaces = serde_json::to_string(&spaces).unwrap();
-        let spaces: Workspaces = serde_json::from_str(&serialized_spaces).unwrap();
-        let first_workspace = &spaces.workspaces[0];
-        assert_eq!(first_workspace.name, "First Workspace".to_owned());
-        assert_eq!(first_workspace.repo_paths[0], "C:\\fake\\path0".to_owned());
-        assert_eq!(first_workspace.repo_paths[1], "C:\\fake\\path1".to_owned());
-        assert_eq!(first_workspace.repo_paths[2], "C:\\fake\\path2".to_owned());
+        let loaded_spaces: Workspaces = serde_json::from_str(&serialized_spaces).unwrap();
 
-        let second_workspace = &spaces.workspaces[1];
-        assert_eq!(second_workspace.name, "Second Workspace".to_owned());
-        assert_eq!(second_workspace.repo_paths[0], "C:\\fake\\path3".to_owned());
+        for (id, workspace) in spaces.workspaces.iter(){
+            let loaded_workspace = &loaded_spaces.workspaces[&id];
+            assert_eq!(workspace, loaded_workspace);
+        }
     }
 
     #[test]
@@ -151,16 +150,13 @@ mod tests {
         let spaces = create_test_workspaces();
         let test_path = test_path();
         write_to_path(&test_path, &spaces)?;
-        let spaces = read_from_path(&test_path)?;
-        let first_workspace = &spaces.workspaces[0];
-        assert_eq!(first_workspace.name, "First Workspace".to_owned());
-        assert_eq!(first_workspace.repo_paths[0], "C:\\fake\\path0".to_owned());
-        assert_eq!(first_workspace.repo_paths[1], "C:\\fake\\path1".to_owned());
-        assert_eq!(first_workspace.repo_paths[2], "C:\\fake\\path2".to_owned());
+        let loaded_spaces = read_from_path(&test_path)?;
 
-        let second_workspace = &spaces.workspaces[1];
-        assert_eq!(second_workspace.name, "Second Workspace".to_owned());
-        assert_eq!(second_workspace.repo_paths[0], "C:\\fake\\path3".to_owned());
+        for (id, workspace) in spaces.workspaces.iter(){
+            let loaded_workspace = &loaded_spaces.workspaces[&id];
+            assert_eq!(workspace, loaded_workspace);
+        }
+
         Ok(())
     }
 }

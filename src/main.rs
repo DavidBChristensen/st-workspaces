@@ -28,14 +28,13 @@ fn main() -> Result<(), eframe::Error> {
 
     if let Ok(open_tabs) = OpenTabs::read() {
         let mut last_workspace = Workspace::from(&open_tabs);
-        let search_result = workspaces
-            .workspaces
-            .iter()
-            .find(|workspace| workspace.uuid == last_workspace.uuid);
 
-        if search_result.is_none() {
+        if workspaces.workspaces.contains_key(&last_workspace.uuid) {
+        } else {
             last_workspace.name = "Last Workspace".to_owned();
-            workspaces.workspaces.push(last_workspace);
+            workspaces
+                .workspaces
+                .insert(last_workspace.uuid, last_workspace);
         }
 
         workspaces
