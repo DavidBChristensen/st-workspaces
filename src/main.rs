@@ -43,6 +43,11 @@ fn close_sourcetree() {
 }
 
 fn update_last_workspace(workspaces: &mut Workspaces) {
+
+    // States
+    // open tab has last id => update workspace with associated id
+    // open tab has no id => save as last workspace, and let the user know you did that
+
     if let Ok(open_tabs) = OpenTabs::read() {
         let mut last_workspace = Workspace::from(&open_tabs);
 
