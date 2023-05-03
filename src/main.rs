@@ -43,29 +43,28 @@ fn close_sourcetree() {
 }
 
 fn update_last_workspace(workspaces: &mut Workspaces) {
-
     // States:
     // - open tabs has last id => update workspace with associated id
-    // - open tabs has no id => save as last workspace, 
-    //      Some considerations: 
+    // - open tabs has no id => save as last workspace,
+    //      Some considerations:
     //          - let the user know you did that?
     //          - what if there is already a last workspace? replace
     //          - Maybe just prompt the user what to do? like select a workspace to save or cancel?
     //          - Maybe just save over the last selected id, no matter what?
     //
     // Is there a way to hook into SourceTree, and after it closes, save the current over the
-    // current workspace? 
+    // current workspace?
 
     if let Ok(open_tabs) = OpenTabs::read() {
         let mut last_workspace = Workspace::from(&open_tabs);
 
-        if workspaces.workspaces.contains_key(&last_workspace.uuid) {
-        } else {
+        if !workspaces.workspaces.contains_key(&last_workspace.uuid) {
             last_workspace.name = "Last Workspace".to_owned();
-            workspaces
-                .workspaces
-                .insert(last_workspace.uuid, last_workspace);
         }
+
+        workspaces
+            .workspaces
+            .insert(last_workspace.uuid, last_workspace);
     }
 }
 
