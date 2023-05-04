@@ -58,7 +58,9 @@ fn update_last_workspace(workspaces: &mut Workspaces) {
     if let Ok(open_tabs) = OpenTabs::read() {
         let mut last_workspace = Workspace::from(&open_tabs);
 
-        if !workspaces.workspaces.contains_key(&last_workspace.uuid) {
+        if workspaces.workspaces.contains_key(&last_workspace.uuid) {
+            last_workspace.name = workspaces.workspaces[&last_workspace.uuid].name.clone();
+        } else {
             last_workspace.name = "Last Workspace".to_owned();
         }
 
