@@ -1,5 +1,9 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")] // hide console window on Windows in release
 
+use anyhow::{bail, Error};
+use flexi_logger::{FileSpec, Logger, WriteMode};
+
+use log::{error, info};
 use st_workspaces::{
     app::SourceTreeWorkspacesApp,
     open_tabs::OpenTabs,
@@ -7,8 +11,12 @@ use st_workspaces::{
     workspaces::{Workspace, Workspaces},
 };
 
-fn main() -> Result<(), eframe::Error> {
-    tracing_subscriber::fmt::init(); // Log to stdout (if you run with `RUST_LOG=debug`).
+fn main() -> Result<(), Error> {
+    let _logger = Logger::try_with_str("info, my::critical::module=trace")?
+        .log_to_file(FileSpec::default().directory("./log"))
+        .write_mode(WriteMode::BufferAndFlush)
+        .start()?;
+
     close_sourcetree();
 
     let mut workspaces = get_workspaces();
@@ -34,11 +42,11 @@ fn close_sourcetree() {
     let close_result = sourcetree_actions::close_sourcetree();
 
     match close_result {
-        Ok(CloseResult::Closed) => println!("Closed SourceTree."),
+        Ok(CloseResult::Closed) => info!("Closed SourceTree."),
         Ok(CloseResult::ProcessNotRunning) => {
-            println!("Didn't close SourceTree, because it wasn't running")
+            info!("Didn't close SourceTree, because it wasn't running")
         }
-        Err(_) => println!("Error occurred closing SourceTree."),
+        Err(_) => error!("Error occurred closing SourceTree."),
     }
 }
 
@@ -55,22 +63,35 @@ fn update_last_workspace(workspaces: &mut Workspaces) {
     // Is there a way to hook into SourceTree, and after it closes, save the current over the
     // current workspace?
 
+    info!("Updating last workspace.");
+
     if let Ok(open_tabs) = OpenTabs::read() {
+        info!("Was able to open tabs.");
         let mut last_workspace = Workspace::from(&open_tabs);
 
         if workspaces.workspaces.contains_key(&last_workspace.uuid) {
             last_workspace.name = workspaces.workspaces[&last_workspace.uuid].name.clone();
+            info!(
+                "Last workspace {} in saved workspace. Updated with lastest.",
+                last_workspace.uuid
+            );
         } else {
             last_workspace.name = "Last Workspace".to_owned();
+            info!(
+                "Last workspace {} not in saved workspaces. Created new workspace.",
+                last_workspace.uuid
+            );
         }
 
         workspaces
             .workspaces
             .insert(last_workspace.uuid, last_workspace);
+    } else {
+        info!("Couldn't open SourceTree's Open Tabs from last session.");
     }
 }
 
-fn launch_app(workspaces: Workspaces) -> Result<(), eframe::Error> {
+fn launch_app(workspaces: Workspaces) -> Result<(), anyhow::Error> {
     let options = eframe::NativeOptions {
         initial_window_size: Some(egui::vec2(640.0, 480.0)),
         min_window_size: Some(egui::vec2(640.0, 480.0)),
@@ -83,4 +104,5 @@ fn launch_app(workspaces: Workspaces) -> Result<(), eframe::Error> {
         options,
         Box::new(|cc| Box::new(SourceTreeWorkspacesApp::new(cc, workspaces))),
     )
+    .or_else(|_| bail!("Error runnning ui"))
 }
