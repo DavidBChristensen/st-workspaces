@@ -8,12 +8,13 @@ use st_workspaces::{
     app::SourceTreeWorkspacesApp,
     open_tabs::OpenTabs,
     sourcetree_actions::{self, CloseResult},
-    workspaces::{Workspace, Workspaces},
+    workspaces::{Workspace, Workspaces}, paths::sourcetree_settings_path,
 };
 
 fn main() -> Result<(), Error> {
+    let settings_path = sourcetree_settings_path().unwrap().join("log");
     let _logger = Logger::try_with_str("info, my::critical::module=trace")?
-        .log_to_file(FileSpec::default().directory("./log"))
+        .log_to_file(FileSpec::default().directory(settings_path))
         .write_mode(WriteMode::BufferAndFlush)
         .start()?;
 
@@ -93,7 +94,7 @@ fn update_last_workspace(workspaces: &mut Workspaces) {
 
 fn launch_app(workspaces: Workspaces) -> Result<(), anyhow::Error> {
     let options = eframe::NativeOptions {
-        initial_window_size: Some(egui::vec2(640.0, 480.0)),
+        initial_window_size: Some(egui::vec2(800.0, 600.0)),
         min_window_size: Some(egui::vec2(640.0, 480.0)),
         centered: true,
         ..Default::default()
