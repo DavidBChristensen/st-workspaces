@@ -7,8 +7,9 @@ use log::{error, info};
 use st_workspaces::{
     app::SourceTreeWorkspacesApp,
     open_tabs::OpenTabs,
+    paths::sourcetree_settings_path,
     sourcetree_actions::{self, CloseResult},
-    workspaces::{Workspace, Workspaces}, paths::sourcetree_settings_path,
+    workspaces::{Workspace, Workspaces},
 };
 
 fn main() -> Result<(), Error> {
@@ -49,6 +50,11 @@ fn close_sourcetree() {
         }
         Err(_) => error!("Error occurred closing SourceTree."),
     }
+
+    // TODO(dchristensen) do we have to wait for the open tabs file to be written
+    // before exiting this function?
+    // How would we do that? Maybe sit around and wait until the task is killed, and if it's
+    // already killed have some timeout?
 }
 
 fn update_last_workspace(workspaces: &mut Workspaces) {
@@ -70,20 +76,24 @@ fn update_last_workspace(workspaces: &mut Workspaces) {
         info!("Was able to open tabs.");
         let mut last_workspace = Workspace::from(&open_tabs);
 
-        if workspaces.workspaces.contains_key(&last_workspace.uuid) {
-            last_workspace.name = workspaces.workspaces[&last_workspace.uuid].name.clone();
+        let workspace_name = if workspaces.workspaces.contains_key(&last_workspace.uuid) {
             info!(
-                "Last workspace {} in saved workspace. Updated with lastest.",
+                "Last workspace {} in saved workspace. Updating with lastest.",
                 last_workspace.uuid
             );
-        } else {
-            last_workspace.name = "Last Workspace".to_owned();
-            info!(
-                "Last workspace {} not in saved workspaces. Created new workspace.",
-                last_workspace.uuid
-            );
-        }
 
+            workspaces.workspaces[&last_workspace.uuid].name.clone()
+        } else {
+            info!(
+                "Last workspace {} not in saved workspaces. Creating new workspace.",
+                last_workspace.uuid
+            );
+
+            "Last Workspace".to_owned()
+        };
+
+        last_workspace.name = workspace_name;
+        info!("The last workspace is {:?}", last_workspace);
         workspaces
             .workspaces
             .insert(last_workspace.uuid, last_workspace);
