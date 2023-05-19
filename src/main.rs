@@ -17,7 +17,9 @@ use uuid::Uuid;
 
 fn main() -> Result<(), Error> {
     let args: Vec<String> = env::args().collect();
-    let update_current_workspace = args.contains(&"auto-update".to_owned());
+    let auto_update = args.contains(&"auto-update".to_owned());
+    let auto_update_and_close = args.contains(&"auto-update-and-close".to_owned());
+    let update_current_workspace = auto_update || auto_update_and_close;
 
     let settings_path = sourcetree_settings_path().unwrap().join("log");
     let _logger = Logger::try_with_str("info, my::critical::module=trace")?
@@ -33,11 +35,13 @@ fn main() -> Result<(), Error> {
     let mut workspaces = get_workspaces();
 
     if last_workspace_id.is_some() {
-        if update_current_workspace {
-            update_last_workspace(&mut workspaces, last_workspace_id.unwrap());
-            save_workspaces(&workspaces);
-        }
+        update_last_workspace(&mut workspaces, last_workspace_id.unwrap());
+        save_workspaces(&workspaces);
         save_open_tabs(&workspaces)
+    }
+
+    if auto_update_and_close {
+        return Ok(());
     }
 
     launch_app(workspaces)
