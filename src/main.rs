@@ -1,5 +1,7 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")] // hide console window on Windows in release
 
+use std::{env, fs};
+
 use anyhow::{bail, Error};
 use flexi_logger::{FileSpec, Logger, WriteMode};
 
@@ -14,6 +16,9 @@ use st_workspaces::{
 use uuid::Uuid;
 
 fn main() -> Result<(), Error> {
+    let args: Vec<String> = env::args().collect();
+    let update_current_workspace = args.contains(&"auto-update".to_owned());
+
     let settings_path = sourcetree_settings_path().unwrap().join("log");
     let _logger = Logger::try_with_str("info, my::critical::module=trace")?
         .log_to_file(FileSpec::default().directory(settings_path))
@@ -23,13 +28,15 @@ fn main() -> Result<(), Error> {
     let last_workspace_id = discover_last_workspace_id();
     info!("Last workspace id is {:?}", last_workspace_id);
 
-    close_sourcetree();
+    close_sourcetree(update_current_workspace);
 
     let mut workspaces = get_workspaces();
 
     if last_workspace_id.is_some() {
-        update_last_workspace(&mut workspaces, last_workspace_id.unwrap());
-        save_workspaces(&workspaces);
+        if update_current_workspace {
+            update_last_workspace(&mut workspaces, last_workspace_id.unwrap());
+            save_workspaces(&workspaces);
+        }
         save_open_tabs(&workspaces)
     }
 
@@ -53,7 +60,7 @@ fn save_open_tabs(workspaces: &Workspaces) {
         let write_result = OpenTabs::write(&open_tabs);
         match write_result {
             Ok(_) => info!("Saved current open tabs"),
-            Err(_) => warn!("Couldn't save current open tabs"),
+            Err(why) => warn!("Couldn't save current open tabs. '{}'", why),
         }
     }
 }
@@ -70,7 +77,10 @@ fn save_workspaces(workspaces: &Workspaces) {
         .expect("Couldn't write workspace after loading last workspace.");
 }
 
-fn close_sourcetree() {
+fn close_sourcetree(wait_for_open_tabs_change: bool) {
+    let open_tabs_path = OpenTabs::path().unwrap();
+    let open_tabs_metadata = fs::metadata(&open_tabs_path);
+
     // try to close SourceTree first, as this should never be up at the same time.
     let close_result = sourcetree_actions::close_sourcetree();
 
@@ -79,15 +89,39 @@ fn close_sourcetree() {
         Ok(CloseResult::ProcessNotRunning) => {
             info!("Didn't close SourceTree, because it wasn't running")
         }
-        Err(_) => error!("Error occurred closing SourceTree."),
+        Err(why) => error!("Error occurred closing SourceTree, '{}'", why),
     }
 
-    // TODO(dchristensen) do we have to wait for the open tabs file to be written
-    // before exiting this function?
-    // How would we do that? Maybe sit around and wait until the task is killed, and if it's
-    // already killed have some timeout?
+    if wait_for_open_tabs_change {
+        match open_tabs_metadata {
+            Ok(initial_metadata) => {
+                let start_time = std::time::Instant::now();
+                loop {
+                    let duration = std::time::Instant::now() - start_time;
+                    if duration > std::time::Duration::from_secs(4) {
+                        break;
+                    }
 
-    std::thread::sleep(std::time::Duration::from_secs(4));
+                    if let Ok(latest_metadata) = fs::metadata(&open_tabs_path) {
+                        if latest_metadata.modified().unwrap()
+                            != initial_metadata.modified().unwrap()
+                        {
+                            break;
+                        }
+                    }
+
+                    std::thread::sleep(std::time::Duration::from_millis(200));
+                }
+            }
+            Err(why) => {
+                warn!(
+                    "Couldn't get open tabs metadata '{}'. Waiting 4 seconds.",
+                    why
+                );
+                std::thread::sleep(std::time::Duration::from_secs(4));
+            }
+        }
+    }
 }
 
 fn update_last_workspace(workspaces: &mut Workspaces, last_workspace_id: Uuid) {
@@ -105,33 +139,39 @@ fn update_last_workspace(workspaces: &mut Workspaces, last_workspace_id: Uuid) {
 
     info!("Updating last workspace.");
 
-    if let Ok(open_tabs) = OpenTabs::read() {
-        info!("Was able to open tabs.");
-        let mut last_workspace = Workspace::from(&open_tabs);
+    match OpenTabs::read() {
+        Ok(open_tabs) => {
+            info!("Was able to open tabs.");
+            let mut last_workspace = Workspace::from(&open_tabs);
 
-        if workspaces.workspaces.contains_key(&last_workspace_id) {
-            info!(
-                "Last workspace {} in saved workspace. Updating with lastest.",
-                last_workspace_id
+            if workspaces.workspaces.contains_key(&last_workspace_id) {
+                info!(
+                    "Last workspace {} in saved workspace. Updating with lastest.",
+                    last_workspace_id
+                );
+
+                last_workspace.uuid = last_workspace_id;
+                last_workspace.name = workspaces.workspaces[&last_workspace_id].name.clone();
+            } else {
+                info!(
+                    "Last workspace {} not in saved workspaces. Creating new workspace.",
+                    last_workspace_id
+                );
+
+                last_workspace.name = "Last Workspace".to_owned();
+            };
+
+            info!("The last workspace is {:?}", last_workspace);
+            workspaces
+                .workspaces
+                .insert(last_workspace.uuid, last_workspace);
+        }
+        Err(why) => {
+            error!(
+                "Couldn't open SourceTree's Open Tabs from last session. '{}'",
+                why
             );
-
-            last_workspace.uuid = last_workspace_id;
-            last_workspace.name = workspaces.workspaces[&last_workspace_id].name.clone();
-        } else {
-            info!(
-                "Last workspace {} not in saved workspaces. Creating new workspace.",
-                last_workspace_id
-            );
-
-            last_workspace.name = "Last Workspace".to_owned();
-        };
-
-        info!("The last workspace is {:?}", last_workspace);
-        workspaces
-            .workspaces
-            .insert(last_workspace.uuid, last_workspace);
-    } else {
-        info!("Couldn't open SourceTree's Open Tabs from last session.");
+        }
     }
 }
 
