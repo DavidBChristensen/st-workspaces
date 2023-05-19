@@ -3,7 +3,7 @@
 use anyhow::{bail, Error};
 use flexi_logger::{FileSpec, Logger, WriteMode};
 
-use log::{error, info};
+use log::{error, info, warn};
 use st_workspaces::{
     app::SourceTreeWorkspacesApp,
     open_tabs::OpenTabs,
@@ -11,6 +11,7 @@ use st_workspaces::{
     sourcetree_actions::{self, CloseResult},
     workspaces::{Workspace, Workspaces},
 };
+use uuid::Uuid;
 
 fn main() -> Result<(), Error> {
     let settings_path = sourcetree_settings_path().unwrap().join("log");
@@ -19,12 +20,42 @@ fn main() -> Result<(), Error> {
         .write_mode(WriteMode::BufferAndFlush)
         .start()?;
 
+    let last_workspace_id = discover_last_workspace_id();
+    info!("Last workspace id is {:?}", last_workspace_id);
+
     close_sourcetree();
 
     let mut workspaces = get_workspaces();
-    update_last_workspace(&mut workspaces);
-    save_workspaces(&workspaces);
+
+    if last_workspace_id.is_some() {
+        update_last_workspace(&mut workspaces, last_workspace_id.unwrap());
+        save_workspaces(&workspaces);
+        save_open_tabs(&workspaces)
+    }
+
     launch_app(workspaces)
+}
+
+fn discover_last_workspace_id() -> Option<Uuid> {
+    if let Ok(open_tabs) = OpenTabs::read() {
+        info!("Was able to open tabs.");
+        let last_workspace = Workspace::from(&open_tabs);
+        if !last_workspace.uuid.is_nil() {
+            return Some(last_workspace.uuid);
+        }
+    }
+    None
+}
+
+fn save_open_tabs(workspaces: &Workspaces) {
+    if let Some(current_workspace) = workspaces.current_workspace() {
+        let open_tabs = OpenTabs::from(current_workspace);
+        let write_result = OpenTabs::write(&open_tabs);
+        match write_result {
+            Ok(_) => info!("Saved current open tabs"),
+            Err(_) => warn!("Couldn't save current open tabs"),
+        }
+    }
 }
 
 fn get_workspaces() -> Workspaces {
@@ -55,9 +86,11 @@ fn close_sourcetree() {
     // before exiting this function?
     // How would we do that? Maybe sit around and wait until the task is killed, and if it's
     // already killed have some timeout?
+
+    std::thread::sleep(std::time::Duration::from_secs(4));
 }
 
-fn update_last_workspace(workspaces: &mut Workspaces) {
+fn update_last_workspace(workspaces: &mut Workspaces, last_workspace_id: Uuid) {
     // States:
     // - open tabs has last id => update workspace with associated id
     // - open tabs has no id => save as last workspace,
@@ -76,23 +109,23 @@ fn update_last_workspace(workspaces: &mut Workspaces) {
         info!("Was able to open tabs.");
         let mut last_workspace = Workspace::from(&open_tabs);
 
-        let workspace_name = if workspaces.workspaces.contains_key(&last_workspace.uuid) {
+        if workspaces.workspaces.contains_key(&last_workspace_id) {
             info!(
                 "Last workspace {} in saved workspace. Updating with lastest.",
-                last_workspace.uuid
+                last_workspace_id
             );
 
-            workspaces.workspaces[&last_workspace.uuid].name.clone()
+            last_workspace.uuid = last_workspace_id;
+            last_workspace.name = workspaces.workspaces[&last_workspace_id].name.clone();
         } else {
             info!(
                 "Last workspace {} not in saved workspaces. Creating new workspace.",
-                last_workspace.uuid
+                last_workspace_id
             );
 
-            "Last Workspace".to_owned()
+            last_workspace.name = "Last Workspace".to_owned();
         };
 
-        last_workspace.name = workspace_name;
         info!("The last workspace is {:?}", last_workspace);
         workspaces
             .workspaces
