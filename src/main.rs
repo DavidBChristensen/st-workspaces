@@ -21,7 +21,12 @@ fn main() -> Result<(), Error> {
     let auto_update_and_close = args.contains(&"auto-update-and-close".to_owned());
     let update_current_workspace = auto_update || auto_update_and_close;
 
-    let settings_path = sourcetree_settings_path().unwrap().join("log");
+    let settings_path = sourcetree_settings_path();
+    if settings_path.is_none(){
+        bail!("Couldn't find settings path.");
+    }
+
+    let settings_path = settings_path.unwrap().join("log");
     let _logger = Logger::try_with_str("info, my::critical::module=trace")?
         .log_to_file(FileSpec::default().directory(settings_path))
         .write_mode(WriteMode::BufferAndFlush)
