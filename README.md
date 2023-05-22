@@ -18,14 +18,14 @@ yet...so that is why this repository exists.
 
 - Initial repository
 - Launch the st-workspaces GUI.
-- Save current tabs to new workspace.
+- Save current tabs to new workspace
     - from ui save button
+    - from custom action
+- Load tabs from selected workspace
 
 -- We are here --
 
-    - from custom action
-- Load tabs from selected workspace.
-- "Install" st-workspaces to custom actions.
+- "Install" st-workspaces to custom actions
 - Manage workspaces
     - add
     - edit
@@ -45,4 +45,4 @@ This project simply edits these settings through the use of custom actions. [Cus
 
 st-workspaces version -> SourceTree version
 
-0.1.0 -> 3.4
+0.2.0 -> 3.4
