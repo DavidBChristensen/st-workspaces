@@ -3,6 +3,7 @@ use std::path::PathBuf;
 use egui::{
     Align, Button, Color32, FontFamily, FontId, Label, Layout, RichText, Sense, TextStyle, Ui,
 };
+use log::info;
 use uuid::Uuid;
 
 use crate::{
@@ -93,12 +94,15 @@ impl SourceTreeWorkspacesApp {
                 }
             }
 
-            if ui
-                .add(Button::new("Create Workspace \nfrom Current Tabs"))
-                .clicked()
-            {
-                self.create_workspace_from_current_tabs();
-            }
+            ui.horizontal(|ui| {
+                if ui.add(Button::new("Create New\nWorkspace")).clicked() {
+                    self.create_new_workspace();
+                }
+
+                if ui.add(Button::new("Create from\nCurrent Tabs")).clicked() {
+                    self.create_workspace_from_current_tabs();
+                }
+            });
         });
     }
 
@@ -180,8 +184,25 @@ impl SourceTreeWorkspacesApp {
             });
     }
 
+    fn create_new_workspace(&mut self) {
+        info!("Creating new workspace...");
+        let new_workspace = Workspace::new("New Workspace", Uuid::new_v4());
+        self.workspaces
+            .workspaces
+            .insert(new_workspace.uuid, new_workspace);
+        let write_result = self.workspaces.write();
+
+        if write_result.is_err() {
+            self.status = "Error creating workspace from current tabs".to_owned();
+        } else {
+            self.status = "Created workspace from current tabs".to_owned();
+        }
+
+        self.workspaces.force_valid_workspace();
+    }
+
     fn create_workspace_from_current_tabs(&mut self) {
-        println!("Creating workspace...");
+        info!("Creating workspace from currently open tabs...");
         let open_tabs = OpenTabs::read().unwrap();
         let mut new_workspace: Workspace = (&open_tabs).into();
         new_workspace.uuid = Uuid::new_v4();
@@ -200,7 +221,7 @@ impl SourceTreeWorkspacesApp {
     }
 
     fn remove_current_workspace(&mut self) {
-        println!("Deleting current workspace...");
+        info!("Deleting current workspace...");
         self.workspaces
             .workspaces
             .remove(&self.workspaces.current_workspace);
@@ -213,12 +234,12 @@ impl SourceTreeWorkspacesApp {
             self.status = "Created workspace from current tabs".to_owned();
         }
 
-//        self.workspaces.force_valid_workspace();
+        //        self.workspaces.force_valid_workspace();
     }
 
     fn open_current_workspace(&mut self, frame: &mut eframe::Frame) {
         if self.workspaces.write().is_err() {
-            println!("Didn't save workspace when closing.");
+            info!("Didn't save workspace when closing.");
         }
 
         let current_workspace = self.workspaces.current_workspace().unwrap();
