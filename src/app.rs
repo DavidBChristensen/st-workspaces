@@ -7,7 +7,7 @@ use log::info;
 use uuid::Uuid;
 
 use crate::{
-    open_tabs::OpenTabs,
+    open_tabs::{self, OpenTabs},
     paths::{sourcetree_exec_path, sourcetree_settings_path},
     workspaces::{Workspace, Workspaces},
 };
@@ -203,7 +203,13 @@ impl SourceTreeWorkspacesApp {
 
     fn create_workspace_from_current_tabs(&mut self) {
         info!("Creating workspace from currently open tabs...");
-        let open_tabs = OpenTabs::read().unwrap();
+        let open_tabs = match OpenTabs::read() {
+            Ok(tabs) => tabs,
+            Err(_) => {
+                self.status = "Couldn't load current tabs to create workspace.".to_owned();
+                return;
+            }
+        };
         let mut new_workspace: Workspace = (&open_tabs).into();
         new_workspace.uuid = Uuid::new_v4();
         self.workspaces
