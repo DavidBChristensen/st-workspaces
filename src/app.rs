@@ -183,7 +183,8 @@ impl SourceTreeWorkspacesApp {
     fn create_workspace_from_current_tabs(&mut self) {
         println!("Creating workspace...");
         let open_tabs = OpenTabs::read().unwrap();
-        let new_workspace: Workspace = (&open_tabs).into();
+        let mut new_workspace: Workspace = (&open_tabs).into();
+        new_workspace.uuid = Uuid::new_v4();
         self.workspaces
             .workspaces
             .insert(new_workspace.uuid, new_workspace);
