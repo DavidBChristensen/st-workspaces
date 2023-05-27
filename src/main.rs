@@ -22,7 +22,7 @@ fn main() -> Result<(), Error> {
     let update_current_workspace = auto_update || auto_update_and_close;
 
     let settings_path = sourcetree_settings_path();
-    if settings_path.is_none(){
+    if settings_path.is_none() {
         bail!("Couldn't find settings path.");
     }
 

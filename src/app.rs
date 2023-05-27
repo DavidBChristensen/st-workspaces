@@ -7,7 +7,7 @@ use log::info;
 use uuid::Uuid;
 
 use crate::{
-    open_tabs::{self, OpenTabs},
+    open_tabs::{OpenTabs},
     paths::{sourcetree_exec_path, sourcetree_settings_path},
     workspaces::{Workspace, Workspaces},
 };
