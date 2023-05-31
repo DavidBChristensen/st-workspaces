@@ -2,7 +2,7 @@
 
 use std::{env, fs};
 
-use anyhow::{bail, Error};
+use anyhow::{anyhow, bail};
 use flexi_logger::{FileSpec, Logger, WriteMode};
 
 use log::{error, info, warn};
@@ -15,18 +15,14 @@ use st_workspaces::{
 };
 use uuid::Uuid;
 
-fn main() -> Result<(), Error> {
+fn main() -> Result<(), anyhow::Error> {
     let args: Vec<String> = env::args().collect();
     let auto_update = args.contains(&"auto-update".to_owned());
     let auto_update_and_close = args.contains(&"auto-update-and-close".to_owned());
     let update_current_workspace = auto_update || auto_update_and_close;
-
-    let settings_path = sourcetree_settings_path();
-    if settings_path.is_none() {
-        bail!("Couldn't find settings path.");
-    }
-
-    let settings_path = settings_path.unwrap().join("log");
+    let settings_path = sourcetree_settings_path()
+        .ok_or_else(|| anyhow!("Couldn't find settings path."))?
+        .join("log");
     let _logger = Logger::try_with_str("info, my::critical::module=trace")?
         .log_to_file(FileSpec::default().directory(settings_path))
         .write_mode(WriteMode::BufferAndFlush)
@@ -35,12 +31,12 @@ fn main() -> Result<(), Error> {
     let last_workspace_id = discover_last_workspace_id();
     info!("Last workspace id is {:?}", last_workspace_id);
 
-    close_sourcetree(update_current_workspace);
+    close_sourcetree(update_current_workspace)?;
 
     let mut workspaces = get_workspaces();
 
-    if last_workspace_id.is_some() {
-        update_last_workspace(&mut workspaces, last_workspace_id.unwrap());
+    if let Some(workspace_id) = last_workspace_id {
+        update_last_workspace(&mut workspaces, workspace_id);
         save_workspaces(&workspaces);
         save_open_tabs(&workspaces)
     }
@@ -86,8 +82,9 @@ fn save_workspaces(workspaces: &Workspaces) {
         .expect("Couldn't write workspace after loading last workspace.");
 }
 
-fn close_sourcetree(wait_for_open_tabs_change: bool) {
-    let open_tabs_path = OpenTabs::path().unwrap();
+fn close_sourcetree(wait_for_open_tabs_change: bool) -> Result<(), anyhow::Error> {
+    let open_tabs_path = OpenTabs::path()
+        .ok_or_else(|| anyhow!("Couldn't get open tabs path trying to close sourcetree"))?;
     let open_tabs_metadata = fs::metadata(&open_tabs_path);
 
     // try to close SourceTree first, as this should never be up at the same time.
@@ -98,7 +95,10 @@ fn close_sourcetree(wait_for_open_tabs_change: bool) {
         Ok(CloseResult::ProcessNotRunning) => {
             info!("Didn't close SourceTree, because it wasn't running")
         }
-        Err(why) => error!("Error occurred closing SourceTree, '{}'", why),
+        Err(why) => {
+            error!("Error occurred closing SourceTree, '{}'", why);
+            bail!("Can't recover because we don't know the state of SourceTree at this point.")
+        }
     }
 
     if wait_for_open_tabs_change {
@@ -112,9 +112,7 @@ fn close_sourcetree(wait_for_open_tabs_change: bool) {
                     }
 
                     if let Ok(latest_metadata) = fs::metadata(&open_tabs_path) {
-                        if latest_metadata.modified().unwrap()
-                            != initial_metadata.modified().unwrap()
-                        {
+                        if latest_metadata.modified()? != initial_metadata.modified()? {
                             break;
                         }
                     }
@@ -127,10 +125,13 @@ fn close_sourcetree(wait_for_open_tabs_change: bool) {
                     "Couldn't get open tabs metadata '{}'. Waiting 4 seconds.",
                     why
                 );
+
                 std::thread::sleep(std::time::Duration::from_secs(4));
             }
         }
     }
+
+    Ok(())
 }
 
 fn update_last_workspace(workspaces: &mut Workspaces, last_workspace_id: Uuid) {
