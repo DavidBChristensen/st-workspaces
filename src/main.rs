@@ -16,25 +16,16 @@ use st_workspaces::{
 use uuid::Uuid;
 
 fn main() -> Result<(), anyhow::Error> {
+    setup_logging()?;
+
     let args: Vec<String> = env::args().collect();
     let auto_update = args.contains(&"auto-update".to_owned());
     let auto_update_and_close = args.contains(&"auto-update-and-close".to_owned());
-    let update_current_workspace = auto_update || auto_update_and_close;
-    let log_path = sourcetree_settings_path()
-        .ok_or_else(|| anyhow!("Couldn't find settings path to make log path."))?
-        .join("log");
-    let _logger = Logger::try_with_str("info, my::critical::module=trace")?
-        .log_to_file(FileSpec::default().directory(log_path))
-        .write_mode(WriteMode::BufferAndFlush)
-        .start()?;
-
     let last_workspace_id = discover_last_workspace_id();
-    info!("Last workspace id is {:?}", last_workspace_id);
-
+    let update_current_workspace = auto_update || auto_update_and_close;
     close_sourcetree(update_current_workspace)?;
 
     let mut workspaces = get_workspaces();
-
     if let Some(workspace_id) = last_workspace_id {
         update_last_workspace(&mut workspaces, workspace_id);
         save_workspaces(&workspaces);
@@ -48,12 +39,25 @@ fn main() -> Result<(), anyhow::Error> {
     launch_app(workspaces)
 }
 
+fn setup_logging() -> Result<(), anyhow::Error> {
+    let log_path = sourcetree_settings_path()
+        .ok_or_else(|| anyhow!("Couldn't find settings path to make log path."))?
+        .join("log");
+    let _logger = Logger::try_with_str("info, my::critical::module=trace")?
+        .log_to_file(FileSpec::default().directory(log_path))
+        .write_mode(WriteMode::BufferAndFlush)
+        .start()?;
+
+    Ok(())
+}
+
 fn discover_last_workspace_id() -> Option<Uuid> {
     match OpenTabs::read() {
         Ok(open_tabs) => {
             info!("Was able to open tabs.");
             let last_workspace = Workspace::from(&open_tabs);
             if !last_workspace.uuid.is_nil() {
+                info!("Last workspace id is {:?}", last_workspace.uuid);
                 return Some(last_workspace.uuid);
             }
             None
@@ -144,19 +148,7 @@ fn close_sourcetree(wait_for_open_tabs_change: bool) -> Result<(), anyhow::Error
 }
 
 fn update_last_workspace(workspaces: &mut Workspaces, last_workspace_id: Uuid) {
-    // States:
-    // - open tabs has last id => update workspace with associated id
-    // - open tabs has no id => save as last workspace,
-    //      Some considerations:
-    //          - let the user know you did that?
-    //          - what if there is already a last workspace? replace
-    //          - Maybe just prompt the user what to do? like select a workspace to save or cancel?
-    //          - Maybe just save over the last selected id, no matter what?
-    //
-    // Is there a way to hook into SourceTree, and after it closes, save the current over the
-    // current workspace?
-
-    info!("Updating last workspace.");
+    info!("Updating last workspace...");
 
     match OpenTabs::read() {
         Ok(open_tabs) => {
