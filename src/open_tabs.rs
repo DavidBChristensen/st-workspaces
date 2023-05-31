@@ -8,7 +8,7 @@ use std::path::PathBuf;
 #[derive(Serialize, Deserialize, Debug, Default)]
 #[serde(rename = "ArrayOfString")]
 pub struct OpenTabs {
-    #[serde(rename = "string")]
+    #[serde(rename = "string", default)]
     pub tabs: Vec<String>,
     pub workspace_id: Option<Uuid>, 
 }

@@ -20,11 +20,11 @@ fn main() -> Result<(), anyhow::Error> {
     let auto_update = args.contains(&"auto-update".to_owned());
     let auto_update_and_close = args.contains(&"auto-update-and-close".to_owned());
     let update_current_workspace = auto_update || auto_update_and_close;
-    let settings_path = sourcetree_settings_path()
-        .ok_or_else(|| anyhow!("Couldn't find settings path."))?
+    let log_path = sourcetree_settings_path()
+        .ok_or_else(|| anyhow!("Couldn't find settings path to make log path."))?
         .join("log");
     let _logger = Logger::try_with_str("info, my::critical::module=trace")?
-        .log_to_file(FileSpec::default().directory(settings_path))
+        .log_to_file(FileSpec::default().directory(log_path))
         .write_mode(WriteMode::BufferAndFlush)
         .start()?;
 
@@ -49,14 +49,20 @@ fn main() -> Result<(), anyhow::Error> {
 }
 
 fn discover_last_workspace_id() -> Option<Uuid> {
-    if let Ok(open_tabs) = OpenTabs::read() {
-        info!("Was able to open tabs.");
-        let last_workspace = Workspace::from(&open_tabs);
-        if !last_workspace.uuid.is_nil() {
-            return Some(last_workspace.uuid);
+    match OpenTabs::read() {
+        Ok(open_tabs) => {
+            info!("Was able to open tabs.");
+            let last_workspace = Workspace::from(&open_tabs);
+            if !last_workspace.uuid.is_nil() {
+                return Some(last_workspace.uuid);
+            }
+            None
+        }
+        Err(why) => {
+            info!("Wasn't able to open tabs file --> {}", why);
+            None
         }
     }
-    None
 }
 
 fn save_open_tabs(workspaces: &Workspaces) {
@@ -83,8 +89,9 @@ fn save_workspaces(workspaces: &Workspaces) {
 }
 
 fn close_sourcetree(wait_for_open_tabs_change: bool) -> Result<(), anyhow::Error> {
-    let open_tabs_path = OpenTabs::path()
-        .ok_or_else(|| anyhow!("Couldn't get open tabs path trying to close sourcetree"))?;
+    let open_tabs_path = OpenTabs::path().ok_or(anyhow!(
+        "Couldn't get open tabs path trying to close SourceTree."
+    ))?;
     let open_tabs_metadata = fs::metadata(&open_tabs_path);
 
     // try to close SourceTree first, as this should never be up at the same time.
@@ -112,7 +119,9 @@ fn close_sourcetree(wait_for_open_tabs_change: bool) -> Result<(), anyhow::Error
                     }
 
                     if let Ok(latest_metadata) = fs::metadata(&open_tabs_path) {
-                        if latest_metadata.modified()? != initial_metadata.modified()? {
+                        if latest_metadata.modified().unwrap()
+                            != initial_metadata.modified().unwrap()
+                        {
                             break;
                         }
                     }
