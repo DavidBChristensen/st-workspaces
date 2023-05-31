@@ -15,28 +15,44 @@ use st_workspaces::{
 };
 use uuid::Uuid;
 
+struct AppConfig {
+    close_after_update: bool,
+    update_current_workspace: bool,
+}
+
 fn main() -> Result<(), anyhow::Error> {
     setup_logging()?;
 
-    let args: Vec<String> = env::args().collect();
-    let auto_update = args.contains(&"auto-update".to_owned());
-    let auto_update_and_close = args.contains(&"auto-update-and-close".to_owned());
+    // We have to get the last workspace id before trying to close SourceTree, as SourceTree
+    // overwrites the OpenTabs file.
     let last_workspace_id = discover_last_workspace_id();
-    let update_current_workspace = auto_update || auto_update_and_close;
-    close_sourcetree(update_current_workspace)?;
+    let app_config = parse_app_config();
+    close_sourcetree(app_config.update_current_workspace)?;
 
     let mut workspaces = get_workspaces();
     if let Some(workspace_id) = last_workspace_id {
         update_last_workspace(&mut workspaces, workspace_id);
-        save_workspaces(&workspaces);
+        workspaces.write()?;
         save_open_tabs(&workspaces)
     }
 
-    if auto_update_and_close {
+    if app_config.close_after_update {
         return Ok(());
     }
 
     launch_app(workspaces)
+}
+
+fn parse_app_config() -> AppConfig {
+    let args: Vec<String> = env::args().collect();
+    let auto_update = args.contains(&"auto-update".to_owned());
+    let auto_update_and_close = args.contains(&"auto-update-and-close".to_owned());
+    let update_current_workspace = auto_update || auto_update_and_close;
+
+    AppConfig {
+        close_after_update: auto_update_and_close,
+        update_current_workspace,
+    }
 }
 
 fn setup_logging() -> Result<(), anyhow::Error> {
@@ -84,12 +100,6 @@ fn get_workspaces() -> Workspaces {
     let mut workspaces = Workspaces::read().unwrap_or_default();
     workspaces.force_valid_workspace();
     workspaces
-}
-
-fn save_workspaces(workspaces: &Workspaces) {
-    workspaces
-        .write()
-        .expect("Couldn't write workspace after loading last workspace.");
 }
 
 fn close_sourcetree(wait_for_open_tabs_change: bool) -> Result<(), anyhow::Error> {
