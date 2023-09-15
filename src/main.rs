@@ -21,7 +21,6 @@ struct AppConfig {
 }
 
 fn main() -> Result<(), anyhow::Error> {
-    //add_icon();
     setup_logging()?;
 
     // We have to get the last workspace id before trying to close SourceTree, as SourceTree
@@ -42,15 +41,6 @@ fn main() -> Result<(), anyhow::Error> {
     }
 
     launch_app(workspaces)
-}
-
-#[allow(dead_code)]
-fn add_icon() {
-    if cfg!(target_os = "windows") {
-        let mut res = winres::WindowsResource::new();
-        res.set_icon("assets/st-workspaces.ico");
-        res.compile().unwrap();
-    }
 }
 
 fn parse_app_config() -> AppConfig {
