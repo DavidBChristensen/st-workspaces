@@ -10,21 +10,21 @@ use std::path::PathBuf;
 pub struct OpenTabs {
     #[serde(rename = "string", default)]
     pub tabs: Vec<String>,
-    pub workspace_id: Option<Uuid>, 
+    pub workspace_id: Option<Uuid>,
 }
 
 impl OpenTabs {
     pub fn path() -> Option<PathBuf> {
-        let Some(settings_path) = sourcetree_settings_path() else { 
-            return None; 
+        let Some(settings_path) = sourcetree_settings_path() else {
+            return None;
         };
 
         Some(settings_path.join("opentabs.xml"))
     }
 
     pub fn write(open_tabs: &OpenTabs) -> anyhow::Result<()> {
-        let Some(path) = OpenTabs::path() else { 
-            bail!("Error getting open tabs file path for reading."); 
+        let Some(path) = OpenTabs::path() else {
+            bail!("Error getting open tabs file path for reading.");
         };
 
         write_to_path(&path, open_tabs)?;
@@ -32,8 +32,8 @@ impl OpenTabs {
     }
 
     pub fn read() -> anyhow::Result<OpenTabs> {
-        let Some(path) = OpenTabs::path() else { 
-            bail!("Error getting open tabs file path for reading."); 
+        let Some(path) = OpenTabs::path() else {
+            bail!("Error getting open tabs file path for reading.");
         };
 
         let open_tabs = read_from_path(&path)?;
@@ -65,13 +65,13 @@ mod tests {
     }
 
     fn create_test_open_tabs() -> OpenTabs {
-        let mut open_tabs = OpenTabs{ 
-            workspace_id : Some(Uuid::new_v4()),
+        let mut open_tabs = OpenTabs {
+            workspace_id: Some(Uuid::new_v4()),
             ..Default::default()
         };
 
-        open_tabs.tabs.push(r#"C:\example\project-one"#.to_owned());
-        open_tabs.tabs.push(r#"C:\example\project-two"#.to_owned());
+        open_tabs.tabs.push(r"C:\example\project-one".to_owned());
+        open_tabs.tabs.push(r"C:\example\project-two".to_owned());
         open_tabs
     }
 
@@ -84,8 +84,8 @@ mod tests {
                         </ArrayOfString>"#;
 
         let open_tabs: OpenTabs = from_str(tab_doc).unwrap();
-        assert_eq!(open_tabs.tabs[0], r#"C:\example\project-one"#);
-        assert_eq!(open_tabs.tabs[1], r#"C:\example\project-two"#);
+        assert_eq!(open_tabs.tabs[0], r"C:\example\project-one");
+        assert_eq!(open_tabs.tabs[1], r"C:\example\project-two");
     }
 
     #[test]
@@ -94,8 +94,8 @@ mod tests {
         let test_path = test_path();
         write_to_path(&test_path, &open_tabs)?;
         let open_tabs = read_from_path(&test_path)?;
-        assert_eq!(open_tabs.tabs[0], r#"C:\example\project-one"#);
-        assert_eq!(open_tabs.tabs[1], r#"C:\example\project-two"#);
+        assert_eq!(open_tabs.tabs[0], r"C:\example\project-one");
+        assert_eq!(open_tabs.tabs[1], r"C:\example\project-two");
         Ok(())
     }
 }

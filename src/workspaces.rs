@@ -1,4 +1,4 @@
-use std::{path::PathBuf, collections::HashMap};
+use std::{collections::HashMap, path::PathBuf};
 
 use anyhow::bail;
 use serde::{Deserialize, Serialize};
@@ -12,8 +12,8 @@ pub struct Workspaces {
     pub workspaces: HashMap<Uuid, Workspace>,
 }
 
-impl Workspaces{
-    pub fn current_workspace(& self) -> Option<& Workspace> {
+impl Workspaces {
+    pub fn current_workspace(&self) -> Option<&Workspace> {
         self.workspaces.get(&self.current_workspace)
     }
 
@@ -22,14 +22,14 @@ impl Workspaces{
     }
 
     pub fn force_valid_workspace(&mut self) {
-        if !self.workspaces.is_empty() && self.current_workspace.is_nil(){
+        if !self.workspaces.is_empty() && self.current_workspace.is_nil() {
             self.current_workspace = *self.workspaces.iter().next().unwrap().0;
         }
     }
 
     pub fn write(&self) -> anyhow::Result<()> {
-        let Some(path) = Workspaces::path() else { 
-            bail!("Error getting workspace path for reading."); 
+        let Some(path) = Workspaces::path() else {
+            bail!("Error getting workspace path for reading.");
         };
 
         write_to_path(&path, self)?;
@@ -37,22 +37,21 @@ impl Workspaces{
     }
 
     pub fn path() -> Option<PathBuf> {
-        let Some(settings_path) = sourcetree_settings_path() else { 
-            return None; 
+        let Some(settings_path) = sourcetree_settings_path() else {
+            return None;
         };
 
         Some(settings_path.join("st-workspaces.json"))
     }
 
     pub fn read() -> anyhow::Result<Workspaces> {
-        let Some(path) = Workspaces::path() else { 
-            bail!("Error getting workspace path for reading."); 
+        let Some(path) = Workspaces::path() else {
+            bail!("Error getting workspace path for reading.");
         };
 
         let workspaces = read_from_path(&path)?;
         Ok(workspaces)
     }
-
 }
 
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq)]
@@ -62,22 +61,22 @@ pub struct Workspace {
     pub repo_paths: Vec<String>,
 }
 
-impl Ord for Workspace{
+impl Ord for Workspace {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
         self.name.cmp(&other.name)
     }
 }
 
-impl PartialOrd for Workspace{
+impl PartialOrd for Workspace {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
         self.name.partial_cmp(&other.name)
     }
 }
 
 impl Workspace {
-    pub fn new(name: &str, uuid : Uuid) -> Self {
+    pub fn new(name: &str, uuid: Uuid) -> Self {
         Self {
-            uuid, 
+            uuid,
             name: name.to_string(),
             repo_paths: Default::default(),
         }
@@ -111,13 +110,13 @@ mod tests {
         space.repo_paths.push("C:\\fake\\path0".to_owned());
         space.repo_paths.push("C:\\fake\\path1".to_owned());
         space.repo_paths.push("C:\\fake\\path2".to_owned());
-        spaces.workspaces.insert(space.uuid,space);
+        spaces.workspaces.insert(space.uuid, space);
 
         let mut space = Workspace::new("Second Workspace", Uuid::new_v4());
         space.repo_paths.push("C:\\fake\\path3".to_owned());
         space.repo_paths.push("C:\\fake\\path4".to_owned());
         space.repo_paths.push("C:\\fake\\path5".to_owned());
-        spaces.workspaces.insert(space.uuid,space);
+        spaces.workspaces.insert(space.uuid, space);
         spaces
     }
 
@@ -139,8 +138,8 @@ mod tests {
         let serialized_spaces = serde_json::to_string(&spaces).unwrap();
         let loaded_spaces: Workspaces = serde_json::from_str(&serialized_spaces).unwrap();
 
-        for (id, workspace) in spaces.workspaces.iter(){
-            let loaded_workspace = &loaded_spaces.workspaces[&id];
+        for (id, workspace) in spaces.workspaces.iter() {
+            let loaded_workspace = &loaded_spaces.workspaces[id];
             assert_eq!(workspace, loaded_workspace);
         }
     }
@@ -152,8 +151,8 @@ mod tests {
         write_to_path(&test_path, &spaces)?;
         let loaded_spaces = read_from_path(&test_path)?;
 
-        for (id, workspace) in spaces.workspaces.iter(){
-            let loaded_workspace = &loaded_spaces.workspaces[&id];
+        for (id, workspace) in spaces.workspaces.iter() {
+            let loaded_workspace = &loaded_spaces.workspaces[id];
             assert_eq!(workspace, loaded_workspace);
         }
 

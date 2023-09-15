@@ -1,6 +1,6 @@
 use anyhow::bail;
 
-pub enum CloseResult{
+pub enum CloseResult {
     Closed,
     ProcessNotRunning,
 }

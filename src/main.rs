@@ -167,7 +167,7 @@ fn update_last_workspace(workspaces: &mut Workspaces, last_workspace_id: Uuid) {
 
             if workspaces.workspaces.contains_key(&last_workspace_id) {
                 info!(
-                    "Last workspace {} in saved workspace. Updating with lastest.",
+                    "Last workspace {} in saved workspace. Updating with latest.",
                     last_workspace_id
                 );
 
@@ -209,5 +209,5 @@ fn launch_app(workspaces: Workspaces) -> Result<(), anyhow::Error> {
         options,
         Box::new(|cc| Box::new(SourceTreeWorkspacesApp::new(cc, workspaces))),
     )
-    .or_else(|_| bail!("Error runnning ui"))
+    .or_else(|_| bail!("Error running ui"))
 }
