@@ -2,6 +2,7 @@ use std::path::PathBuf;
 
 use egui::{
     Align, Button, Color32, FontFamily, FontId, Label, Layout, RichText, Sense, TextStyle, Ui,
+    Visuals,
 };
 use log::info;
 use uuid::Uuid;
@@ -22,6 +23,10 @@ pub struct SourceTreeWorkspacesApp {
 
 impl SourceTreeWorkspacesApp {
     pub fn new(cc: &eframe::CreationContext<'_>, workspaces: Workspaces) -> Self {
+        let mut style = (*cc.egui_ctx.style()).clone();
+        style.visuals = Visuals::light(); // Set to light mode
+        cc.egui_ctx.set_style(style);
+
         configure_text_styles(&cc.egui_ctx);
 
         Self {
