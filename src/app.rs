@@ -24,7 +24,8 @@ pub struct SourceTreeWorkspacesApp {
 impl SourceTreeWorkspacesApp {
     pub fn new(cc: &eframe::CreationContext<'_>, workspaces: Workspaces) -> Self {
         let mut style = (*cc.egui_ctx.style()).clone();
-        style.visuals = Visuals::light(); // Set to light mode
+        //style.visuals = Visuals::light();
+        style.visuals = Visuals::dark();
         cc.egui_ctx.set_style(style);
 
         configure_text_styles(&cc.egui_ctx);
